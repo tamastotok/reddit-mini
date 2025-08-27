@@ -1,9 +1,11 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from .models import UserProfile, Post, Comment, Vote, Tag
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.middleware.csrf import get_token
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.password_validation import validate_password
 
 
 class CustomTokenSerializer(TokenObtainPairSerializer):
@@ -22,29 +24,35 @@ class CustomTokenSerializer(TokenObtainPairSerializer):
             data['csrfToken'] = get_token(request)
         return data
 
-
-class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=False)
+class RegisterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=User.objects.all(), lookup="iexact", message="This email is already taken.")])
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ("id", "username", "email", "password", "password2")
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password2"]:
+            raise serializers.ValidationError({"password": "Passwords do not match"})
+        return attrs
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        validated_data.pop("password2")
+        user = User.objects.create_user(**validated_data)
+        return user
 
-    def update(self, instance, validated_data):
-        password = validated_data.pop('password', None)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
 
-        if password:
-            instance.set_password(password)
-
-        instance.save()
-        return instance
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "first_name", "last_name"]
+        read_only_fields = ["id", "username", "email"]
 
 
 class VoteSerializer(serializers.ModelSerializer):

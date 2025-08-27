@@ -17,6 +17,7 @@ from .serializers import (
     UserSerializer,
     PostSerializer,
     CommentSerializer,
+    RegisterSerializer,
     CustomTokenSerializer,
     UserProfileSerializer,
     ChangePasswordSerializer,
@@ -36,7 +37,7 @@ class CustomTokenView(TokenObtainPairView):
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
