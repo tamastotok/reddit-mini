@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../utils/constants';
+import {
+  ACCESS_TOKEN,
+  REFRESH_TOKEN,
+  USER_ID,
+  USERNAME,
+} from '../../utils/constants';
 
 import api from '../../utils/api';
 import Popup from '../../components/Popup';
@@ -35,8 +40,8 @@ function Login() {
 
       localStorage.setItem(ACCESS_TOKEN, res.data.access);
       localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-      localStorage.setItem('user_id', res.data.user_id);
-      localStorage.setItem('username', username);
+      localStorage.setItem(USER_ID, res.data.user_id);
+      localStorage.setItem(USERNAME, username);
 
       navigate('/');
     } catch (error) {

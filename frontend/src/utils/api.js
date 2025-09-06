@@ -1,69 +1,63 @@
 import axios from 'axios';
+import { logoutUser } from './logout';
 import { jwtDecode } from 'jwt-decode';
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '../utils/constants';
+import { ACCESS_TOKEN, REFRESH_TOKEN } from './constants';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-});
+const baseURL = import.meta.env.VITE_API_URL;
 
-// Request Interceptor: Attaches token to every request
+const api = axios.create({ baseURL });
+
+// Separate axios instance for refreshing token
+const plainAxios = axios.create({ baseURL });
+
+// Check if token is expired or about to expire in the next 30 seconds
+function isTokenExpired(token) {
+  const decoded = jwtDecode(token);
+  const now = Date.now() / 1000;
+  const bufferTime = 30; // seconds before actual expiration
+  return decoded.exp < now + bufferTime;
+}
+
 api.interceptors.request.use(
   async (config) => {
-    const token = localStorage.getItem(ACCESS_TOKEN);
+    let token = localStorage.getItem(ACCESS_TOKEN);
     const refreshToken = localStorage.getItem(REFRESH_TOKEN);
 
-    // If token is expired, refresh it before sending the request
     if (token && isTokenExpired(token)) {
       if (refreshToken) {
         try {
-          const refreshResponse = await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/token/refresh/`,
-            { refresh: refreshToken }
-          );
+          const response = await plainAxios.post('/api/token/refresh/', {
+            refresh: refreshToken,
+          });
 
-          const newAccessToken = refreshResponse.data.access;
-
-          // Save new access token to localStorage
-          localStorage.setItem(ACCESS_TOKEN, newAccessToken);
-
-          // Update the Authorization header with the new token
-          config.headers.Authorization = `Bearer ${newAccessToken}`;
-        } catch (error) {
-          console.error(error);
-          // If refresh fails, redirect to login
-          localStorage.removeItem(ACCESS_TOKEN);
-          localStorage.removeItem(REFRESH_TOKEN);
-          window.location.href = '/login';
+          token = response.data.access;
+          localStorage.setItem(ACCESS_TOKEN, token);
+        } catch (err) {
+          console.error('Token refresh failed:', err);
+          logoutUser();
+          return Promise.reject(err);
         }
       } else {
-        // If no refresh token, redirect to login
         window.location.href = '/login';
+        return Promise.reject(new Error('No refresh token found.'));
       }
-    } else if (token) {
-      // If token is valid, include it in the request headers
+    }
+
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Function to check if the token is expired
-function isTokenExpired(token) {
-  const decoded = jwtDecode(token);
-  const tokenExpiration = decoded.exp;
-  const now = Date.now() / 1000; // Current time in seconds
-  return tokenExpiration < now; // Return true if expired
-}
-
-// Response Interceptor: Handles 401 and token refresh
 api.interceptors.response.use(
-  (response) => response, // Return the response as is if no error
+  (response) => response,
   (error) => {
-    // Pass other errors through
+    if (error.response?.status === 401) {
+      logoutUser();
+    }
     return Promise.reject(error);
   }
 );

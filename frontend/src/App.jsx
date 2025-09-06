@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -10,6 +11,7 @@ import EditPost from './pages/EditPost';
 import UserProfile from './pages/User';
 import Settings from './pages/Settings';
 import Comments from './pages/Comments';
+import Popup from './components/Popup';
 
 function RegisterAndLogout() {
   localStorage.clear();
@@ -22,12 +24,37 @@ function Logout() {
 }
 
 function App() {
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setSessionExpired(true);
+    };
+    window.addEventListener('session-expired', handleSessionExpired);
+
+    return () => {
+      window.removeEventListener('session-expired', handleSessionExpired);
+    };
+  }, []);
+
+  const handlePopupClose = () => {
+    setSessionExpired(false);
+    window.location.href = '/login';
+  };
 
   return (
     <>
-    <BrowserRouter>
-      <Routes>
-        <Route
+      {sessionExpired && (
+        <Popup
+          show={sessionExpired}
+          onClose={handlePopupClose}
+          title="Session Expired"
+          message="Your session has expired. Please log in again."
+        />
+      )}
+      <BrowserRouter>
+        <Routes>
+          <Route
             path="/"
             element={
               <ProtectedRoute>
@@ -35,11 +62,11 @@ function App() {
               </ProtectedRoute>
             }
           />
-        <Route path="/register" element={<RegisterAndLogout />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/logout" element={<Logout />} />
-        <Route path="*" element={<NotFound />} />
-        <Route
+          <Route path="/register" element={<RegisterAndLogout />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/logout" element={<Logout />} />
+          <Route path="*" element={<NotFound />} />
+          <Route
             path="/post/create"
             element={
               <ProtectedRoute>
@@ -47,7 +74,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-        <Route
+          <Route
             path="/post/search"
             element={
               <ProtectedRoute>
@@ -55,7 +82,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-        <Route
+          <Route
             path="/post/:postId/edit"
             element={
               <ProtectedRoute>
@@ -63,7 +90,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-        <Route
+          <Route
             path="/user/:username"
             element={
               <ProtectedRoute>
@@ -71,7 +98,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-        <Route
+          <Route
             path="/settings"
             element={
               <ProtectedRoute>
@@ -79,7 +106,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-        <Route
+          <Route
             path="/comments/:postId"
             element={
               <ProtectedRoute>
@@ -87,10 +114,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
