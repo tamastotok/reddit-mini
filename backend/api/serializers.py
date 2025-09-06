@@ -25,7 +25,8 @@ class CustomTokenSerializer(TokenObtainPairSerializer):
         return data
 
 class RegisterSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=User.objects.all(), lookup="iexact", message="This email is already taken.")])
+    username = serializers.CharField(required=True, validators=[UniqueValidator(queryset=User.objects.all(),lookup="iexact", message="Username is already taken!")])
+    email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=User.objects.all(), lookup="iexact", message="Email is already taken!")])
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
 
