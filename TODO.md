@@ -17,7 +17,7 @@
 
 ## 3. Homepage
 
-[ ] Error message for empty field search
+[✓] Error message for empty field search
 
 ## 4. Post
 
