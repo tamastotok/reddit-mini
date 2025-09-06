@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import api from '../utils/api';
+import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '../utils/constants';
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../utils/constants';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
-import Loading from './Loading';
+import Loading from '../LoadingOverlay';
 import { Link } from 'react-router-dom';
 
 function FormComponent({ route, method }) {

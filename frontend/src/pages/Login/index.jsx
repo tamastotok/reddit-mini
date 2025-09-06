@@ -1,33 +1,58 @@
 import { useState } from 'react';
-import api from '../../utils/api';
-import { useNavigate } from 'react-router-dom';
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../utils/constants';
+import { useNavigate, Link } from 'react-router-dom';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
-import Loading from '../../components/Loading';
-import { Link } from 'react-router-dom';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../utils/constants';
+
+import api from '../../utils/api';
+import Popup from '../../components/Popup';
+import LoadingOverlay from '../../components/LoadingOverlay';
+import FieldWithError from '../../components/Form/FieldWithError';
 
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [popupMsg, setPopupMsg] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
+  };
+
   const handleSubmit = async (e) => {
-    setLoading(true);
     e.preventDefault();
+    setLoading(true);
+    setPopupMsg('');
+    setShowPopup(false);
+
     try {
       const res = await api.post('/api/token/', { username, password });
+
       localStorage.setItem(ACCESS_TOKEN, res.data.access);
       localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
       localStorage.setItem('user_id', res.data.user_id);
       localStorage.setItem('username', username);
+
       navigate('/');
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.username?.[0] ||
-        error.response?.data?.detail ||
-        'An unexpected error occurred.';
-      alert(errorMessage);
+      const data = error?.response?.data;
+      const usernameMsg = data?.username?.[0] || '';
+      const passwordMsg = data?.password?.[0] || '';
+      setUsernameError(usernameMsg);
+      setPasswordError(passwordMsg);
+
+      if (!usernameMsg && !passwordMsg) {
+        const message = error.message
+          ? `${error.message}.`
+          : 'An unexpected error occurred.';
+        setPopupMsg(message);
+        setShowPopup(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -35,34 +60,46 @@ function Login() {
 
   return (
     <Container>
+      <LoadingOverlay loading={loading} />
+      <Popup
+        show={showPopup}
+        onClose={() => setShowPopup(false)}
+        title="Login Error"
+        message={popupMsg}
+      />
       <Row className="justify-content-center mt-5">
         <Col xs={12} sm={8} md={6} lg={4}>
           <Form onSubmit={handleSubmit} className="my-form">
             <h1 className="text-center">Login</h1>
-            <Form.Group controlId="formUsername">
-              <Form.Label>Username</Form.Label>
-              <Form.Control
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-              />
-            </Form.Group>
 
-            <Form.Group controlId="formPassword">
-              <Form.Label>Password</Form.Label>
-              <Form.Control
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-              />
-            </Form.Group>
+            <FieldWithError
+              id="formUsername"
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onFocus={() => setUsernameError('')}
+              error={usernameError}
+              type="text"
+              placeholder="Enter username"
+              isAutoFocused={true}
+            />
+
+            <FieldWithError
+              id="formPassword"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setPasswordError('')}
+              error={passwordError}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter password"
+              icon={showPassword ? faEyeSlash : faEye}
+              onIconClick={togglePasswordVisibility}
+            />
+
             <Button variant="primary" type="submit" className="w-100 mt-3 mb-3">
               Login
             </Button>
-
-            {loading && <Loading />}
           </Form>
 
           <p className="text-center mt-3">

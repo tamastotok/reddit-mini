@@ -1,29 +1,30 @@
+// src/pages/Register.jsx
 import { useState } from 'react';
-import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../utils/constants';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
-import Loading from '../../components/Loading';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { Link } from 'react-router-dom';
-import PasswordRequirements from '../../components/PasswordRequirements';
+
+import api from '../../utils/api';
+import Popup from '../../components/Popup';
+import LoadingOverlay from '../../components/LoadingOverlay';
+import PasswordRequirements from '../../components/Form/PasswordRequirements';
+import FieldWithError from '../../components/Form/FieldWithError';
 
 function Register() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setconfirmPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [popupMsg, setPopupMsg] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const [isDisabled, setIsDisabled] = useState(true);
-
-  const disableButton = (state) => {
-    setIsDisabled(state);
-  };
-
+  const [canSubmit, setCanSubmit] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const navigate = useNavigate();
 
   const togglePasswordVisibility = (type) => {
     if (type === 'password') setShowPassword((prev) => !prev);
@@ -31,8 +32,13 @@ function Register() {
   };
 
   const handleSubmit = async (e) => {
-    setLoading(true);
     e.preventDefault();
+    setLoading(true);
+    setEmailError('');
+    setUsernameError('');
+    setShowPopup(false);
+    setPopupMsg('');
+
     try {
       await api.post('/api/user/register/', {
         email,
@@ -42,15 +48,20 @@ function Register() {
       });
       navigate('/login');
     } catch (error) {
-      const errorMessage =
-        error.response?.data.email?.[0] ||
-        error.response?.data.username?.[0] ||
-        error.response?.data.detail ||
-        error.response?.data.password ||
-        error.message ||
-        'An unexpected error occurred.';
-      alert(errorMessage);
-      console.log(error);
+      const data = error?.response?.data;
+      const emailMsg = data?.email?.[0] || '';
+      const userMsg = data?.username?.[0] || '';
+
+      setEmailError(emailMsg);
+      setUsernameError(userMsg);
+
+      if (!emailMsg && !userMsg) {
+        const message = error.message
+          ? `${error.message}.`
+          : 'An unexpected error occurred.';
+        setPopupMsg(message);
+        setShowPopup(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -58,97 +69,86 @@ function Register() {
 
   return (
     <Container>
+      <LoadingOverlay loading={loading} />
+      <Popup
+        show={showPopup}
+        onClose={() => setShowPopup(false)}
+        title="Registration Error"
+        message={popupMsg}
+      />
       <Row className="justify-content-center mt-5">
         <Col xs={12} sm={8} md={6} lg={4}>
           <Form onSubmit={handleSubmit} className="my-form">
             <h1 className="text-center">Register</h1>
 
-            <Form.Group controlId="formEmail">
-              <Form.Label>Email</Form.Label>
-              <Form.Control
-                type="email"
-                value={email}
-                required
-                autoFocus
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter email"
-              />
-            </Form.Group>
+            <FieldWithError
+              id="formEmail"
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setEmailError('')}
+              error={emailError}
+              type="email"
+              placeholder="Enter email"
+              isAutoFocused={true}
+            />
 
-            <Form.Group controlId="formUsername">
-              <Form.Label>Username</Form.Label>
-              <Form.Control
-                type="text"
-                value={username}
-                required
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-              />
-            </Form.Group>
+            <FieldWithError
+              id="formUsername"
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onFocus={() => setUsernameError('')}
+              error={usernameError}
+              type="text"
+              placeholder="Enter username"
+            />
 
-            <Form.Group controlId="formPassword" className="mb-2">
-              <Form.Label>Password</Form.Label>
-              <div className="d-flex align-items-center">
-                <Form.Control
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  required
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  aria-describedby="passwordHelp"
-                />
-                <FontAwesomeIcon
-                  icon={showPassword ? faEyeSlash : faEye}
-                  onClick={() => togglePasswordVisibility('password')}
-                  style={{ cursor: 'pointer', marginLeft: '8px' }}
-                />
-              </div>
-            </Form.Group>
+            <FieldWithError
+              id="formPassword"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter password"
+              icon={showPassword ? faEyeSlash : faEye}
+              onIconClick={() => togglePasswordVisibility('password')}
+            />
 
-            <Form.Group controlId="formPassword2">
-              <Form.Label>Confirm password</Form.Label>
-              <div className="d-flex align-items-center">
-                <Form.Control
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  required
-                  onChange={(e) => setconfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
-                />
-                <FontAwesomeIcon
-                  icon={showConfirmPassword ? faEyeSlash : faEye}
-                  onClick={() => togglePasswordVisibility('confirm-password')}
-                  style={{ cursor: 'pointer', marginLeft: '8px' }}
-                />
-              </div>
-              <PasswordRequirements
-                email={email}
-                username={username}
-                password={password}
-                passwordsMatch={
-                  password && password === confirmPassword ? true : false
-                }
-                disableButton={disableButton}
-              />
-            </Form.Group>
+            <FieldWithError
+              id="formPassword2"
+              label="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="Confirm password"
+              icon={showConfirmPassword ? faEyeSlash : faEye}
+              onIconClick={() => togglePasswordVisibility('confirm-password')}
+            />
+
+            <PasswordRequirements
+              email={email}
+              username={username}
+              password={password}
+              passwordsMatch={password === confirmPassword}
+              disableButton={setCanSubmit}
+            />
 
             <Button
               variant="primary"
               type="submit"
-              className="w-100 mt-3 mb-3"
-              disabled={!isDisabled}
+              className="w-100 mt-3"
+              disabled={!canSubmit || loading}
             >
               Register
             </Button>
-
-            {loading && <Loading />}
           </Form>
 
           <Button
             onClick={() => navigate('/login')}
             variant="secondary"
-            type="submit"
-            className="w-100 mt-3 mb-3"
+            type="button"
+            className="w-100 mt-3"
           >
             Back to Login
           </Button>

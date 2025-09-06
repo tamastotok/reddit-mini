@@ -13,7 +13,7 @@
 
 ## 2. Login
 
-[ ] Error message if username or password is incorrect
+[✓] Error message if username or password is incorrect
 
 ## 3. Homepage
 
