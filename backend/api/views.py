@@ -423,8 +423,10 @@ class SearchPost(generics.ListAPIView):
 
         return Post.objects.filter(
             Q(title__icontains=query)
+            | Q(author__username__iexact=query)
             | Q(content__icontains=query)
-            | Q(author__username__icontains=query)
+            | Q(category__icontains=query)
+            | Q(tags__name__iexact=query)
         )
 
     def list(self, request, *args, **kwargs):
