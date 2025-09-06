@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Modal, Badge } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faArrowCircleUp,
+  faArrowCircleDown,
+} from '@fortawesome/free-solid-svg-icons';
 import api from '../utils/api';
+import { formatNumbers } from '../utils/formatNumbers';
+import searchPosts from '../utils/searchPosts';
 
 const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
   const userId = Number(localStorage.getItem('user_id'));
@@ -27,6 +34,10 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
     } catch (error) {
       console.error('Error voting:', error);
     }
+  };
+
+  const handleTagClick = (tagName) => {
+    searchPosts(tagName, navigate);
   };
 
   const handleEditClick = (e) => {
@@ -64,9 +75,7 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
           style={{ cursor: 'pointer' }}
         >
           <Card.Title>{post.title}</Card.Title>
-          <Card.Text>
-            {post.content}
-          </Card.Text>
+          <Card.Text>{post.content}</Card.Text>
 
           <div className="d-flex flex-wrap">
             {post.category && (
@@ -74,28 +83,42 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
             )}
           </div>
         </Card.Body>
+
         <Card.Footer className="d-flex justify-content-between align-items-center">
           <div>
             <Button
-              variant={userVote === 1 ? 'secondary' : 'outline-secondary'}
+              variant={userVote === 1 ? 'outline-success' : 'outline-secondary'}
               onClick={(e) => {
                 e.stopPropagation();
                 handleVote(1);
               }}
             >
-              <i className="bi bi-arrow-up-circle" />{' '}
+              <FontAwesomeIcon icon={faArrowCircleUp} size="lg" />
             </Button>
-            <span className="mx-2">{post.total_votes}</span>
+
+            <span
+              className="mx-2"
+              style={{
+                minWidth: '2ch',
+                display: 'inline-block',
+                textAlign: 'center',
+                fontFamily: 'monospace',
+              }}
+            >
+              {formatNumbers(post.total_votes)}
+            </span>
+
             <Button
-              variant={userVote === -1 ? 'secondary' : 'outline-secondary'}
+              variant={userVote === -1 ? 'outline-danger' : 'outline-secondary'}
               onClick={(e) => {
                 e.stopPropagation();
                 handleVote(-1);
               }}
             >
-              <i className="bi bi-arrow-down-circle" />{' '}
+              <FontAwesomeIcon icon={faArrowCircleDown} size="lg" />
             </Button>
           </div>
+
           <div className="d-flex flex-wrap">
             {post.tags.map((tag, index) => (
               <Badge
@@ -104,11 +127,13 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
                 bg="secondary"
                 className="me-2 mb-2"
                 style={{ cursor: 'pointer' }}
+                onClick={() => handleTagClick(tag.name)}
               >
                 {tag.name}
               </Badge>
             ))}
           </div>
+
           <div>
             Comments: {post.comments_count > 0 ? post.comments_count : 0}
           </div>
@@ -118,15 +143,16 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
               <Button
                 variant="outline-primary"
                 size="sm"
-                className="ml-2"
+                className="ms-2"
                 onClick={handleEditClick}
               >
                 Edit
               </Button>
+
               <Button
                 variant="outline-danger"
                 size="sm"
-                className="ml-2"
+                className="ms-2"
                 onClick={handleDeleteClick}
               >
                 Delete
