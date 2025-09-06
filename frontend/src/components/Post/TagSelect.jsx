@@ -37,7 +37,7 @@ function TagSelect({ tags, setTags }) {
             onClick={() => handleTagRemove(tag)}
             style={{ cursor: 'pointer' }}
           >
-            {tag}
+            {tag.name}
           </Badge>
         ))}
       </div>
