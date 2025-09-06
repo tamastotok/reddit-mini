@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { InputGroup, FormControl } from 'react-bootstrap';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import api from '../utils/api';
+//import api from '../utils/api';
+import searchPosts from '../utils/searchPosts';
 import Popup from './Popup';
 
 function SearchBar() {
@@ -12,23 +13,8 @@ function SearchBar() {
   const [showPopup, setShowPopup] = useState(false);
   const [popupMsg, setPopupMsg] = useState('');
 
-  const onSearch = async () => {
-    if (!query.trim()) {
-      return;
-    }
-
-    try {
-      const res = await api.get(`/api/search/?q=${query}`);
-      navigate('/post/search', { state: { results: res.data } });
-    } catch (error) {
-      const msg = error.message
-        ? `${error.message}.`
-        : 'An unexpected error occurred.';
-      console.log(error);
-      setPopupMsg(msg);
-      setShowPopup(true);
-      navigate('/');
-    }
+  const onSearch = () => {
+    searchPosts(query, navigate, setPopupMsg, setShowPopup);
   };
 
   const handleKeyDown = (e) => {
