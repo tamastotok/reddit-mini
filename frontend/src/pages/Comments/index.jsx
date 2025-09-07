@@ -21,7 +21,6 @@ function Comments() {
       const res = await api.get(`/api/posts/${id}/`);
       setPost(res.data);
       setComments(res.data.comments);
-
       const commentVotesMap = {};
 
       res.data.comments.forEach((comment) => {

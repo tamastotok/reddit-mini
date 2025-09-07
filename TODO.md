@@ -24,19 +24,21 @@
 ## 4. Search
 
 [ ] Search by profile should make user profile in the first place at results
+[ ] Short by/Filter by dropdowns margin fix
+[ ] Back button ui change
 
 ## 5. Post
 
 [✓] Upvote/Downvote buttons ui error <br>
-[ ] Tags should work as filter search <br>
+[✓] Tags should work as filter search <br>
 [✓] Edit/Delete buttons margin fix
+[ ] Create post buttons should be align right, border-radius change
 
 ## 6. Comments
 
 [✓] Send/Cancel buttons margin fix <br>
 [✓] Upvote/Downvote buttons should be the same as in Post <br>
-[ ] Edit/Delete buttons ui (optional) <br>
-[ ] Reply system
+[✓] Edit/Delete buttons ui (optional) <br>
 
 ## 7. Settings
 
@@ -51,3 +53,11 @@
 
 [ ] Refactor the whole db model
 [ ] Create ER model, Relational model in draw.io for documentation
+
+## Planned features
+
+- Dark mode
+- Reply system
+- Role system
+- Report system
+- Subforum system
