@@ -44,7 +44,8 @@
 ## 7. Settings
 
 [ ] Edit/Delete/Change Password buttons margin fix <br>
-[ ] Main page button → Back button + ui fix (align)
+[ ] Main page button → Back button + ui fix (align) <br>
+[ ] Profile picture change or select between default pics
 
 ## 8. Auth
 
