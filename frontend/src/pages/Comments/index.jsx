@@ -126,7 +126,7 @@ function Comments() {
           comment.id === commentId ? res.data : comment
         )
       );
-      setCommentText(''); 
+      setCommentText('');
     } catch (error) {
       console.error('Error updating comment:', error);
     }
@@ -181,12 +181,22 @@ function Comments() {
             placeholder="Write a comment..."
           />
         </Form.Group>
-        <Button variant="primary" onClick={handleSendComment} className="mr-2">
-          Send
-        </Button>
-        <Button variant="secondary" onClick={() => setCommentText('')}>
-          Cancel
-        </Button>
+        <div className="mt-2 d-flex justify-content-end">
+          <Button
+            className="me-2 rounded-pill"
+            variant="secondary"
+            onClick={() => setCommentText('')}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="rounded-pill"
+            variant="primary"
+            onClick={handleSendComment}
+          >
+            Comment
+          </Button>
+        </div>
       </Form>
 
       <CommentList
