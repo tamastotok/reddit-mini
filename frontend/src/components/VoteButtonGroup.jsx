@@ -19,21 +19,24 @@ function VoteButtonGroup({ userVote, totalVotes, onVote }) {
 
   return (
     <div
-      className={`d-flex align-items-center mt-2 rounded-pill px-2 py-1 bg-light border ${getBorderColor()}`}
+      className={`d-flex align-items-center rounded-pill px-1 bg-light border ${getBorderColor()}`}
       style={{ width: 'min-content' }}
     >
       <button
-        className={`vote-btn me-2 border-0 bg-transparent ${getArrowColor(1)}`}
+        className={`vote-btn border-0 bg-transparent ${getArrowColor(1)}`}
         onClick={(e) => {
           e.stopPropagation();
           onVote(1);
         }}
       >
-        <FontAwesomeIcon icon={faArrowUp} />
+        <FontAwesomeIcon
+          style={{ padding: '0px', margin: '0px', fontSize: '1rem' }}
+          icon={faArrowUp}
+        />
       </button>
 
-      <span
-        className="mx-2"
+      <p
+        className="mx-1"
         style={{
           minWidth: '3ch',
           display: 'inline-block',
@@ -41,19 +44,24 @@ function VoteButtonGroup({ userVote, totalVotes, onVote }) {
           fontFamily: 'monospace',
           fontWeight: 'bold',
           color: 'black',
+          fontSize: '0.75rem',
+          marginBottom: '0px',
         }}
       >
         {formatNumbers(totalVotes)}
-      </span>
+      </p>
 
       <button
-        className={`vote-btn ms-2 border-0 bg-transparent ${getArrowColor(-1)}`}
+        className={`vote-btn border-0 bg-transparent ${getArrowColor(-1)}`}
         onClick={(e) => {
           e.stopPropagation();
           onVote(-1);
         }}
       >
-        <FontAwesomeIcon icon={faArrowDown} />
+        <FontAwesomeIcon
+          style={{ padding: '0px', margin: '0px', fontSize: '1rem' }}
+          icon={faArrowDown}
+        />
       </button>
     </div>
   );
