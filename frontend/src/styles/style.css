@@ -25,3 +25,24 @@
 .hover:hover {
   cursor: pointer;
 }
+
+.vote-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  padding: 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.vote-btn:hover {
+  color: inherit;
+}
+
+.vote-btn:hover .fa-arrow-up {
+  color: red;
+}
+
+.vote-btn:hover .fa-arrow-down {
+  color: blue;
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
+import VoteButtonGroup from '../../components/VoteButtonGroup';
 
 function CommentItem({
   comment,
@@ -32,27 +33,11 @@ function CommentItem({
         <span> {comment.content}</span>
       )}
 
-      <div className="d-flex align-items-center mt-2">
-        <Button
-          variant={userCommentVote === 1 ? 'secondary' : 'outline-secondary'}
-          size="sm"
-          onClick={() => handleCommentVote(comment.id, 1)}
-          className="mr-2"
-        >
-          Upvote
-        </Button>
-
-        <Button
-          variant={userCommentVote === -1 ? 'secondary' : 'outline-secondary'}
-          size="sm"
-          onClick={() => handleCommentVote(comment.id, -1)}
-          className="mr-2"
-        >
-          Downvote
-        </Button>
-
-        <span>Votes: {comment.total_votes}</span>
-      </div>
+      <VoteButtonGroup
+        userVote={userCommentVote}
+        totalVotes={comment.total_votes}
+        onVote={(value) => handleCommentVote(comment.id, value)}
+      />
 
       {authorId === userId && (
         <div className="d-flex align-items-center mt-2">

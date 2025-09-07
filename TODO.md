@@ -34,7 +34,7 @@
 ## 6. Comments
 
 [✓] Send/Cancel buttons margin fix <br>
-[ ] Upvote/Downvote buttons should be the same as in Post <br>
+[✓] Upvote/Downvote buttons should be the same as in Post <br>
 [ ] Edit/Delete buttons ui (optional) <br>
 [ ] Reply system
 

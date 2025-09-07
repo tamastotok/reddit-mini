@@ -2,26 +2,23 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Modal, Badge } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faArrowCircleUp,
-  faArrowCircleDown,
-  faComments,
-} from '@fortawesome/free-solid-svg-icons';
+import { faComments } from '@fortawesome/free-solid-svg-icons';
 import api from '../utils/api';
-import { formatNumbers } from '../utils/formatNumbers';
+
 import searchPosts from '../utils/searchPosts';
+import VoteButtonGroup from './VoteButtonGroup';
 
 const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
   const userId = Number(localStorage.getItem('user_id'));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
-  const [userVote, setUserVote] = useState(
+  const [userPostVote, setUserPostVote] = useState(
     post.votes.find((vote) => vote.user_id === userId)?.value || null
   );
   const navigate = useNavigate();
 
-  const handleVote = async (voteType) => {
-    const newVoteType = userVote === voteType ? null : voteType;
+  const handlePostVote = async (voteType) => {
+    const newVoteType = userPostVote === voteType ? null : voteType;
 
     try {
       await api.post(`/api/posts/${post.id}/vote/`, {
@@ -29,7 +26,7 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
         vote_type: newVoteType,
       });
 
-      setUserVote(newVoteType);
+      setUserPostVote(newVoteType);
 
       refreshVotedPost(post.id);
     } catch (error) {
@@ -87,43 +84,11 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
 
         <Card.Footer className="d-flex justify-content-between align-items-center">
           <div className="d-flex align-items-center">
-            <div>
-              <Button
-                variant={
-                  userVote === 1 ? 'outline-success' : 'outline-secondary'
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleVote(1);
-                }}
-              >
-                <FontAwesomeIcon icon={faArrowCircleUp} size="lg" />
-              </Button>
-
-              <span
-                className="mx-2"
-                style={{
-                  minWidth: '2ch',
-                  display: 'inline-block',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                }}
-              >
-                {formatNumbers(post.total_votes)}
-              </span>
-
-              <Button
-                variant={
-                  userVote === -1 ? 'outline-danger' : 'outline-secondary'
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleVote(-1);
-                }}
-              >
-                <FontAwesomeIcon icon={faArrowCircleDown} size="lg" />
-              </Button>
-            </div>
+            <VoteButtonGroup
+              userVote={userPostVote}
+              totalVotes={post.total_votes}
+              onVote={handlePostVote}
+            />
 
             <div className="d-flex align-items-center ms-4 me-4">
               <FontAwesomeIcon icon={faComments} className="me-2" />
