@@ -11,6 +11,7 @@ function Comments() {
   const [comments, setComments] = useState([]);
   const [userPostVote, setUserPostVote] = useState({});
   const [userCommentVote, setUserCommentVote] = useState({});
+  const [isFocused, setIsFocused] = useState(false);
   const { postId } = useParams();
   const navigate = useNavigate();
   const userId = Number(localStorage.getItem('user_id'));
@@ -161,8 +162,15 @@ function Comments() {
     }
   };
 
+  const showActions = isFocused || commentText.trim().length > 0;
+
+  const handleCancel = () => {
+    setCommentText('');
+    setIsFocused(false);
+  };
+
   return post ? (
-    <div className="container mt-4">
+    <div className="container mt-4 mp-5 pe-5">
       <PostCard
         post={post}
         handlePostClick={(postId) => navigate(`/comments/${postId}`)}
@@ -170,33 +178,42 @@ function Comments() {
         userVotes={userPostVote}
       />
 
-      <h5>Comments</h5>
       <Form className="mb-3">
         <Form.Group controlId="commentText">
           <Form.Control
             as="textarea"
-            rows={3}
+            rows={showActions ? 3 : 1}
             value={commentText}
+            onFocus={() => setIsFocused(true)}
             onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Write a comment..."
+            placeholder="Join the conversation"
+            className="transition-height"
+            style={{ borderRadius: '20px' }}
           />
         </Form.Group>
-        <div className="mt-2 d-flex justify-content-end">
-          <Button
-            className="me-2 rounded-pill"
-            variant="secondary"
-            onClick={() => setCommentText('')}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="rounded-pill"
-            variant="primary"
-            onClick={handleSendComment}
-          >
-            Comment
-          </Button>
-        </div>
+
+        {showActions && (
+          <div className="mt-2 d-flex justify-content-end">
+            <Button
+              className="me-2 rounded-pill"
+              variant="secondary"
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-pill"
+              variant="primary"
+              onClick={() => {
+                handleSendComment(commentText);
+                setCommentText('');
+                setIsFocused(false);
+              }}
+            >
+              Comment
+            </Button>
+          </div>
+        )}
       </Form>
 
       <CommentList
