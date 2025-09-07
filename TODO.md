@@ -13,25 +13,26 @@
 
 ## 2. Login
 
-[✓] Error message if username or password is incorrect
+[✓] Error message if username or password is incorrect <br>
 [ ] Multiple pupups error
 
 ## 3. Homepage
 
-[✓] Error message for empty field search
-[ ] Filter all posts by category
+[✓] Error message for empty field search <br>
+[ ] Filter all posts by category <br>
+[ ] Clickable post category - should work as tags
 
 ## 4. Search
 
-[ ] Search by profile should make user profile in the first place at results
-[ ] Short by/Filter by dropdowns margin fix
+[ ] Search by profile should make user profile in the first place at results <br>
+[ ] Short by/Filter by dropdowns margin fix <br>
 [ ] Back button ui change
 
 ## 5. Post
 
 [✓] Upvote/Downvote buttons ui error <br>
 [✓] Tags should work as filter search <br>
-[✓] Edit/Delete buttons margin fix
+[✓] Edit/Delete buttons margin fix <br>
 [ ] Create post buttons should be align right, border-radius change
 
 ## 6. Comments
@@ -47,11 +48,11 @@
 
 ## 8. Auth
 
-[ ] Check if user is logged out after 30 min
+[✓] Check if user is logged out after 30 min
 
 ## 9. Database
 
-[ ] Refactor the whole db model
+[ ] Refactor the whole db model <br>
 [ ] Create ER model, Relational model in draw.io for documentation
 
 ## Planned features
