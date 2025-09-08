@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Button, Form, Badge } from 'react-bootstrap';
+import { Form, Badge } from 'react-bootstrap';
 import VoteButtonGroup from '../../components/VoteButtonGroup';
 import { timeAgo } from '../../utils/timeAgo';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import EditDeleteButtons from '../../components/EditDeleteButtons';
 
 function CommentItem({
   comment,
@@ -75,32 +74,10 @@ function CommentItem({
               </Badge>
             </div>
           ) : (
-            <div
-              className="d-flex align-items-center rounded-pill px-1 ms-2"
-              style={{ padding: '5.75px 0px' }}
-            >
-              <Badge
-                bg="secondary"
-                pill
-                className="me-2 hover-bg-primary"
-                style={{ cursor: 'pointer' }}
-                onClick={toggleEditMode}
-              >
-                <FontAwesomeIcon icon={faEdit} />
-                Edit
-              </Badge>
-
-              <Badge
-                bg="secondary"
-                pill
-                className="hover-bg-danger"
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleDeleteComment(comment.id)}
-              >
-                <FontAwesomeIcon icon={faTrash} />
-                Delete
-              </Badge>
-            </div>
+            <EditDeleteButtons
+              onEdit={toggleEditMode}
+              onDelete={() => handleDeleteComment(comment.id)}
+            />
           ))}
       </div>
     </div>

@@ -7,6 +7,7 @@ import api from '../utils/api';
 
 import searchPosts from '../utils/searchPosts';
 import VoteButtonGroup from './VoteButtonGroup';
+import EditDeleteButtons from './EditDeleteButtons';
 
 const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
   const userId = Number(localStorage.getItem('user_id'));
@@ -110,25 +111,10 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
           </div>
 
           {userId === post.author_id && (
-            <div className="d-flex">
-              <Button
-                variant="outline-primary"
-                size="sm"
-                className="ms-2"
-                onClick={handleEditClick}
-              >
-                Edit
-              </Button>
-
-              <Button
-                variant="outline-danger"
-                size="sm"
-                className="ms-2"
-                onClick={handleDeleteClick}
-              >
-                Delete
-              </Button>
-            </div>
+            <EditDeleteButtons
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+            />
           )}
         </Card.Footer>
       </Card>
