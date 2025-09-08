@@ -28,17 +28,9 @@ function CreatePost() {
       });
 
       setShowSuccessModal(true);
-      resetForm();
     } catch (error) {
       console.error(error);
     }
-  };
-
-  const resetForm = () => {
-    setTitle('');
-    setContent('');
-    setCategory('technology');
-    setTags([]);
   };
 
   return (
@@ -48,7 +40,7 @@ function CreatePost() {
         handleClose={() => setShowSuccessModal(false)}
       />
 
-      <Form onSubmit={handleSubmit} className="mb-4 ps-3">
+      <Form onSubmit={handleSubmit} className="mb-4 px-3">
         <Form.Group controlId="formTitle">
           <Form.Label>Title</Form.Label>
           <Form.Control
@@ -76,12 +68,9 @@ function CreatePost() {
         <CategorySelect category={category} setCategory={setCategory} />
         <TagSelect tags={tags} setTags={setTags} />
 
-        <div className="mt-3">
-          <Button variant="primary" type="submit" className="me-2">
-            Create
-          </Button>
-          <Button variant="secondary" onClick={resetForm} className="me-2">
-            Cancel
+        <div className="mt-3 d-flex flex-row-reverse">
+          <Button variant="primary" type="submit" className="ms-2 rounded-pill">
+            Post
           </Button>
           <NavigationButton variant="secondary" url="/" name="Back" />
         </div>

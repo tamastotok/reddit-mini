@@ -11,7 +11,7 @@ function NavigationButton({ variant, url, name }) {
   };
 
   return (
-    <Button variant={variant} onClick={handleClick}>
+    <Button variant={variant} onClick={handleClick} className="rounded-pill">
       {name}
     </Button>
   );

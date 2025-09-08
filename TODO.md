@@ -33,7 +33,7 @@
 [✓] Upvote/Downvote buttons ui error <br>
 [✓] Tags should work as filter search <br>
 [✓] Edit/Delete buttons margin fix <br>
-[ ] Create post buttons should be align right, border-radius change
+[✓] Create post buttons should be align right, border-radius change
 
 ## 6. Comments
 
