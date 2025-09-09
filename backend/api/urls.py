@@ -16,6 +16,7 @@ from .views import (
     EditPost,
     GetProfile,
     SearchPost,
+    GetCategories
 )
 
 urlpatterns = [
@@ -24,6 +25,7 @@ urlpatterns = [
         UserActivityView.as_view(),
         name='user-activity',
     ),
+    path('post/categories/',GetCategories.as_view(),name='get-categories'),
     path('posts/<int:post_id>/vote/', PostVoteView.as_view(), name='vote-on-post'),
     path('posts/delete/all/', DeleteAllPosts.as_view(), name='delete-all-posts'),
     path('post/create/', CreatePost.as_view(), name='create-post'),

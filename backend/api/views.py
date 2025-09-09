@@ -130,6 +130,17 @@ class GetPosts(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class GetCategories(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        categories=[
+            {'value':key, 'label':label}
+            for key, label in Post.Category.choices
+        ]
+        return Response(categories)
+
+
 class CreatePost(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]

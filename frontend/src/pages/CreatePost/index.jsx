@@ -9,10 +9,10 @@ import NavigationButton from '../../components/NavigationButton';
 function CreatePost() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('technology');
+  const [category, setCategory] = useState('');
   const [tags, setTags] = useState([]);
-
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const userId = localStorage.getItem('user_id');
 
   const handleSubmit = async (e) => {
@@ -26,7 +26,6 @@ function CreatePost() {
         category,
         tags: tags.map((tag) => ({ name: tag })),
       });
-
       setShowSuccessModal(true);
     } catch (error) {
       console.error(error);
@@ -64,7 +63,6 @@ function CreatePost() {
           />
         </Form.Group>
 
-        {/* Category and Tag Select Components */}
         <CategorySelect category={category} setCategory={setCategory} />
         <TagSelect tags={tags} setTags={setTags} />
 

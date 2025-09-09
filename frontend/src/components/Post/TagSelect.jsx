@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Form, Badge } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
 function TagSelect({ tags, setTags }) {
   const [tagInput, setTagInput] = useState('');
@@ -9,52 +11,66 @@ function TagSelect({ tags, setTags }) {
   };
 
   const handleTagAdd = (e) => {
-    // Prevent form submission when pressing Enter
     if (e.key === 'Enter') {
       e.preventDefault();
 
-      if (tagInput && !tags.includes(tagInput) && tags.length < 3) {
-        setTags([...tags, tagInput]);
+      const trimmed = tagInput.trim();
+
+      if (trimmed && !tags.includes(trimmed) && tags.length < 3) {
+        setTags([...tags, trimmed]);
         setTagInput('');
       }
     }
   };
 
-  const handleTagRemove = (tag) => {
-    setTags(tags.filter((item) => item !== tag));
+  const handleTagRemove = (tagToRemove) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   return (
     <Form.Group controlId="formTags" className="mt-3">
       <Form.Label>Tags</Form.Label>
-      <div className="d-flex flex-wrap">
+      <div className="d-flex align-items-center gap-2 mb-2">
         {tags.map((tag, index) => (
           <Badge
             key={index}
             pill
             bg="secondary"
-            className="me-2 mb-2"
-            onClick={() => handleTagRemove(tag)}
-            style={{ cursor: 'pointer' }}
+            className="px-2"
+            style={{ fontSize: '0.9rem' }}
           >
-            {tag.name}
+            {tag}
+            <FontAwesomeIcon
+              icon={faTimes}
+              onClick={() => handleTagRemove(tag)}
+              className="ms-2"
+              style={{ cursor: 'pointer' }}
+              title="Remove tag"
+            />
           </Badge>
         ))}
       </div>
+
       <Form.Control
         type="text"
-        placeholder="Type and press Enter to add a tag"
+        placeholder="Enter your tag"
         value={tagInput}
         onChange={handleTagInputChange}
         onKeyDown={handleTagAdd}
         disabled={tags.length >= 3}
       />
-      <Form.Text className="text-muted">
-        You can add up to 3 tags. Press Enter to add a tag.
+
+      <Form.Text className="text-muted d-block mt-1">
+        You can add up to 3 tags. Press Enter to add.
       </Form.Text>
+
+      <Form.Text className="text-muted d-block">
+        Tap the <FontAwesomeIcon icon={faTimes} /> next to a tag to remove it.
+      </Form.Text>
+
       {tags.length >= 3 && (
-        <Form.Text className="text-danger">
-          You can only select up to 3 tags.
+        <Form.Text className="text-danger d-block mt-1">
+          Maximum 3 tags allowed.
         </Form.Text>
       )}
     </Form.Group>

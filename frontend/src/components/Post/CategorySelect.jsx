@@ -1,38 +1,38 @@
 import { Form } from 'react-bootstrap';
+import { FloatingLabel } from 'react-bootstrap';
+import useFetchCategories from '../../hooks/useCategories';
+import { useState } from 'react';
 
 function CategorySelect({ category, setCategory }) {
+  const { categories, loading } = useFetchCategories();
+  const [isHidden, setIsHidden] = useState(false);
+
+  const handleChange = (e) => {
+    const value = e.target.value.trim();
+    setCategory(value);
+    if (value !== '') setIsHidden(true);
+  };
+
   return (
-    <Form.Group controlId="formCategory" className="mt-3">
-      <Form.Label>Category</Form.Label>
-      <Form.Control
-        as="select"
+    <FloatingLabel controlId="formCategory" label="Category" className="mt-3">
+      <Form.Select
         value={category}
-        onChange={(e) => setCategory(e.target.value)}
+        onChange={handleChange}
         required
+        disabled={loading}
       >
-        <option value="technology">Technology</option>
-        <option value="science">Science</option>
-        <option value="health">Health</option>
-        <option value="education">Education</option>
-        <option value="business">Business</option>
-        <option value="finance">Finance</option>
-        <option value="lifestyle">Lifestyle</option>
-        <option value="travel">Travel</option>
-        <option value="food">Food</option>
-        <option value="sports">Sports</option>
-        <option value="entertainment">Entertainment</option>
-        <option value="politics">Politics</option>
-        <option value="environment">Environment</option>
-        <option value="art_culture">Art & Culture</option>
-        <option value="gaming">Gaming</option>
-        <option value="productivity">Productivity</option>
-        <option value="diy_crafts">DIY & Crafts</option>
-        <option value="parenting">Parenting</option>
-        <option value="fashion">Fashion</option>
-        <option value="relationships">Relationships</option>
-        <option value="custom">Custom</option>
-      </Form.Control>
-    </Form.Group>
+        {!isHidden && (
+          <option value="" disabled hidden>
+            Select a Category
+          </option>
+        )}
+        {categories.map((cat, idx) => (
+          <option key={idx} value={cat.value}>
+            {cat.label}
+          </option>
+        ))}
+      </Form.Select>
+    </FloatingLabel>
   );
 }
 

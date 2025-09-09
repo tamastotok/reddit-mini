@@ -115,7 +115,7 @@ class PostSerializer(serializers.ModelSerializer):
     comments_count = serializers.IntegerField(source='comments.count', read_only=True)
     votes = VoteSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
-    category = serializers.ChoiceField(choices=Post.CATEGORY_CHOICES, required=False)
+    category = serializers.ChoiceField(choices=Post.Category.choices, required=False)
     tags = TagSerializer(many=True)
 
     class Meta:

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-
+from django.utils.translation import gettext_lazy as _
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -41,36 +41,42 @@ class Tag(models.Model):
 
 
 class Post(models.Model):
-    CATEGORY_CHOICES = [
-        ('technology', 'Technology'),
-        ('science', 'Science'),
-        ('health', 'Health'),
-        ('education', 'Education'),
-        ('business', 'Business'),
-        ('finance', 'Finance'),
-        ('lifestyle', 'Lifestyle'),
-        ('travel', 'Travel'),
-        ('food', 'Food'),
-        ('sports', 'Sports'),
-        ('entertainment', 'Entertainment'),
-        ('politics', 'Politics'),
-        ('environment', 'Environment'),
-        ('art_culture', 'Art & Culture'),
-        ('gaming', 'Gaming'),
-        ('productivity', 'Productivity'),
-        ('diy_crafts', 'DIY & Crafts'),
-        ('parenting', 'Parenting'),
-        ('fashion', 'Fashion'),
-        ('relationships', 'Relationships'),
-        ('custom', 'Custom'),
-    ]
+
+    class Category(models.TextChoices):
+        TECHNOLOGY = "technology", _("Technology")
+        SCIENCE = "science", _("Science")
+        HEALTH = "health", _("Health")
+        EDUCATION = "education", _("Education")
+        BUSINESS = "business", _("Business")
+        FINANCE = "finance", _("Finance")
+        LIFESTYLE = "lifestyle", _("Lifestyle")
+        TRAVEL = "travel", _("Travel")
+        FOOD = "food", _("Food")
+        SPORTS = "sports", _("Sports")
+        ENTERTAINMENT = "entertainment", _("Entertainment")
+        POLITICS = "politics", _("Politics")
+        ENVIRONMENT = "environment", _("Environment")
+        ART_CULTURE = "art_culture", _("Art & Culture")
+        GAMING = "gaming", _("Gaming")
+        PRODUCTIVITY = "productivity", _("Productivity")
+        DIY_CRAFTS = "diy_crafts", _("DIY & Crafts")
+        PARENTING = "parenting", _("Parenting")
+        FASHION = "fashion", _("Fashion")
+        RELATIONSHIPS = "relationships", _("Relationships")
+        OTHER = "other", _("Other")
 
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True)
+    category = models.CharField(
+        max_length=30,
+        choices=Category.choices,
+        default=Category.OTHER,
+        blank=True,
+    )
+    
     tags = models.ManyToManyField(Tag, related_name='posts')
     votes = GenericRelation(Vote, related_query_name='post_votes_set')
 
