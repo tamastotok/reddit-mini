@@ -57,6 +57,11 @@
 [ ] Refactor the whole db model <br>
 [ ] Create ER model, Relational model in draw.io for documentation
 
+## 10. Misc.
+
+[ ] Change text inputs to floating labels <br>
+[ ] CommentItem.jsx line 59: make an onClick function (refactor)
+
 ## Planned features
 
 - Dark mode
