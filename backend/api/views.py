@@ -8,7 +8,7 @@ from rest_framework.permissions import (
     AllowAny,
     IsAuthenticatedOrReadOnly,
 )
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Prefetch, Case, When, IntegerField, Q
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
 from django.middleware.csrf import get_token
@@ -121,18 +121,48 @@ class UserActivityView(APIView):
 
 class GetPosts(APIView):
     def get(self, request):
-        category = request.query_params.get('category', None)
+        category = request.query_params.get('category')
+        sort = request.query_params.get('sort', 'date')  # default sort = date
 
-        posts = Post.objects.prefetch_related(
-            Prefetch('votes', queryset=Vote.objects.all(), to_attr='post_votes_set')
+        # Base queryset: annotate post-level counts
+        posts = Post.objects.annotate(
+            upvotes_count=Count(
+                Case(When(votes__value=1, then=1), output_field=IntegerField())
+            ),
+            downvotes_count=Count(
+                Case(When(votes__value=-1, then=1), output_field=IntegerField())
+            ),
+            comment_count=Count('comments')
+        ).prefetch_related(
+            # Prefetch comments with their own annotations
+            Prefetch(
+                'comments',
+                queryset=Comment.objects.annotate(
+                    upvotes_count=Count(
+                        Case(When(votes__value=1, then=1), output_field=IntegerField())
+                    ),
+                    downvotes_count=Count(
+                        Case(When(votes__value=-1, then=1), output_field=IntegerField())
+                    )
+                ),
+            ),
+            'votes'
         )
 
-        if category: 
+        # Category filter
+        if category:
             posts = posts.filter(category=category)
+
+        # Sorting
+        if sort == 'upvotes':
+            posts = posts.order_by('-upvotes_count')
+        elif sort == 'comments':
+            posts = posts.order_by('-comment_count')
+        else:  # newest first
+            posts = posts.order_by('-created_at')
 
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 
 class GetCategories(APIView):
@@ -156,9 +186,28 @@ class CreatePost(generics.ListCreateAPIView):
 
 
 class RefreshPost(generics.RetrieveAPIView):
-    queryset = Post.objects.prefetch_related(
-        Prefetch('votes', queryset=Vote.objects.all(), to_attr='post_votes_set')
-    ).all()
+    queryset = Post.objects.annotate(
+        upvotes_count=Count(
+            Case(When(votes__value=1, then=1), output_field=IntegerField())
+        ),
+        downvotes_count=Count(
+            Case(When(votes__value=-1, then=1), output_field=IntegerField())
+        ),
+        comment_count=Count('comments')
+    ).prefetch_related(
+        Prefetch(
+            'comments',
+            queryset=Comment.objects.annotate(
+                upvotes_count=Count(
+                    Case(When(votes__value=1, then=1), output_field=IntegerField())
+                ),
+                downvotes_count=Count(
+                    Case(When(votes__value=-1, then=1), output_field=IntegerField())
+                )
+            ),
+        ),
+        'votes'
+    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -219,10 +268,29 @@ class PostVoteView(generics.GenericAPIView):
 
 
 class GetComments(generics.RetrieveAPIView):
-    queryset = Post.objects.prefetch_related(
+    queryset = Post.objects.annotate(
+        # annotate post-level vote and comment counts
+        upvotes_count=Count(
+            Case(When(votes__value=1, then=1), output_field=IntegerField())
+        ),
+        downvotes_count=Count(
+            Case(When(votes__value=-1, then=1), output_field=IntegerField())
+        ),
+        comment_count=Count('comments')
+    ).prefetch_related(
+        Prefetch(
+            'comments',
+            queryset=Comment.objects.annotate(
+                upvotes_count=Count(
+                    Case(When(votes__value=1, then=1), output_field=IntegerField())
+                ),
+                downvotes_count=Count(
+                    Case(When(votes__value=-1, then=1), output_field=IntegerField())
+                )
+            ),
+        ),
         'votes',
-        'comments__votes',
-    ).all()
+    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -287,9 +355,16 @@ class CommentVoteView(generics.GenericAPIView):
 
 
 class RefreshComment(generics.RetrieveAPIView):
-    queryset = Comment.objects.prefetch_related(
-        Prefetch('votes', queryset=Vote.objects.all(), to_attr='post_votes_set')
-    ).all()
+    queryset = Comment.objects.annotate(
+        upvotes_count=Count(
+            Case(When(votes__value=1, then=1), output_field=IntegerField())
+        ),
+        downvotes_count=Count(
+            Case(When(votes__value=-1, then=1), output_field=IntegerField())
+        )
+    ).prefetch_related(
+        'votes'
+    )
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 

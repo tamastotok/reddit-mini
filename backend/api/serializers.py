@@ -67,9 +67,9 @@ class VoteSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     author_username = serializers.CharField(source='author.username', read_only=True)
     author_id = serializers.IntegerField(source='author.id', read_only=True)
-    upvotes = serializers.IntegerField(read_only=True)
-    downvotes = serializers.IntegerField(read_only=True)
-    total_votes = serializers.IntegerField(read_only=True)
+    upvotes = serializers.IntegerField(source='upvotes_count', read_only=True)
+    downvotes = serializers.IntegerField(source='downvotes_count', read_only=True)
+    total_votes = serializers.SerializerMethodField()
     votes = VoteSerializer(many=True, read_only=True)
     post_title = serializers.CharField(source='post.title', read_only=True)
     post_id = serializers.IntegerField(source='post.id', read_only=True)
@@ -99,6 +99,11 @@ class CommentSerializer(serializers.ModelSerializer):
             'total_votes',
         ]
 
+    def get_total_votes(self, obj):
+        return (getattr(obj, 'upvotes_count', 0) -
+                getattr(obj, 'downvotes_count', 0))
+
+
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -107,14 +112,17 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
-    upvotes = serializers.IntegerField(read_only=True)
-    downvotes = serializers.IntegerField(read_only=True)
-    total_votes = serializers.IntegerField(read_only=True)
     author_id = serializers.IntegerField(source='author.id', read_only=True)
     author_username = serializers.CharField(source='author.username', read_only=True)
-    comments_count = serializers.IntegerField(source='comments.count', read_only=True)
+
+    # Use annotated fields directly
+    upvotes = serializers.IntegerField(source='upvotes_count', read_only=True)
+    downvotes = serializers.IntegerField(source='downvotes_count', read_only=True)
+    total_votes = serializers.SerializerMethodField()
+    comments_count = serializers.IntegerField(source='comment_count', read_only=True)
+
     votes = VoteSerializer(many=True, read_only=True)
-    comments = CommentSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True)
     category = serializers.ChoiceField(choices=Post.Category.choices, required=False)
     tags = TagSerializer(many=True)
 
@@ -148,39 +156,34 @@ class PostSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         tags_data = validated_data.pop('tags')
-
         post = Post.objects.create(**validated_data)
 
         for tag_data in tags_data:
             tag_name = tag_data['name'].strip().lower()
-
-            tag = Tag.objects.filter(name=tag_name).first()
-
-            if not tag:
-                tag = Tag.objects.create(name=tag_name)
-
+            tag, _ = Tag.objects.get_or_create(name=tag_name)
             post.tags.add(tag)
 
         return post
 
     def update(self, instance, validated_data):
-        # Extract nested tag data (if provided)
         tags_data = validated_data.pop('tags', None)
 
-        # Update basic fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
         if tags_data is not None:
-            # Clear existing tags
             instance.tags.clear()
-            # Add or get each tag
             for tag_data in tags_data:
-                tag, created = Tag.objects.get_or_create(name=tag_data['name'])
+                tag, _ = Tag.objects.get_or_create(name=tag_data['name'])
                 instance.tags.add(tag)
 
         return instance
+    
+    def get_total_votes(self, obj):
+        # Safe calculation from annotated values
+        return (getattr(obj, 'upvotes_count', 0) -
+                getattr(obj, 'downvotes_count', 0))
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

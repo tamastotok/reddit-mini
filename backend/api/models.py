@@ -80,18 +80,6 @@ class Post(models.Model):
     tags = models.ManyToManyField(Tag, related_name='posts')
     votes = GenericRelation(Vote, related_query_name='post_votes_set')
 
-    @property
-    def upvotes(self):
-        return self.votes.filter(value=1).count()
-
-    @property
-    def downvotes(self):
-        return self.votes.filter(value=-1).count()
-
-    @property
-    def total_votes(self):
-        return self.upvotes - self.downvotes
-
     def clean(self):
         if self.tags.count() > 3:
             raise ValidationError("You can only add up to 3 tags.")
@@ -108,26 +96,6 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     votes = GenericRelation('Vote', related_query_name='comment_votes_set')
-
-    @property
-    def upvotes(self):
-        return Vote.objects.filter(
-            content_type=ContentType.objects.get_for_model(Comment),
-            object_id=self.id,
-            value=1,
-        ).count()
-
-    @property
-    def downvotes(self):
-        return Vote.objects.filter(
-            content_type=ContentType.objects.get_for_model(Comment),
-            object_id=self.id,
-            value=-1,
-        ).count()
-
-    @property
-    def total_votes(self):
-        return self.upvotes - self.downvotes
 
     def __str__(self):
         return f'Comment by {self.author.username} on {self.post.title}'

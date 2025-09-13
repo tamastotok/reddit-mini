@@ -4,11 +4,14 @@ import api from '../../utils/api';
 import PostCard from '../../components/PostCard';
 import CategorySelect from '../../components/Post/CategorySelect';
 import LoadingOverlay from '../../components/LoadingOverlay';
+import SortSelect from '../../components/SortSelect';
 
 function Home() {
   const [posts, setPosts] = useState([]);
   const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState('date');
+
   const navigate = useNavigate();
 
   const disableSelectedElement = () => {
@@ -20,9 +23,12 @@ function Home() {
   const getPosts = async () => {
     try {
       setLoading(true);
-      const url = category ? `/api/posts/?category=${category}` : '/api/posts';
 
+      const url = `/api/posts/?${
+        category ? `category=${category}&` : ''
+      }sort=${sortBy}`;
       const res = await api.get(url);
+
       setPosts(res.data);
       disableSelectedElement();
     } catch (error) {
@@ -35,7 +41,7 @@ function Home() {
   useEffect(() => {
     getPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]);
+  }, [category, sortBy]);
 
   const refreshVotedPost = async (postId) => {
     try {
@@ -54,13 +60,13 @@ function Home() {
   return (
     <div className="container mt-4">
       {loading && <LoadingOverlay />}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h3>All Posts</h3>
+      <div className="d-flex gap-2 align-items-center mb-3">
         <CategorySelect
           category={category}
           setCategory={setCategory}
           showAllOption
         />
+        <SortSelect sortBy={sortBy} setSortBy={setSortBy} />
       </div>
       {posts.length === 0 ? (
         <p>No posts available.</p>
