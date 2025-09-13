@@ -14,7 +14,7 @@
 ## 2. Login
 
 [✓] Error message if username or password is incorrect <br>
-[ ] Multiple pupups error
+[✓] Multiple pupups error
 
 ## 3. Homepage
 

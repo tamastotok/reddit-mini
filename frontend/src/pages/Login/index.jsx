@@ -45,6 +45,7 @@ function Login() {
 
       navigate('/');
     } catch (error) {
+      console.log(error);
       const data = error?.response?.data;
       const usernameMsg = data?.username?.[0] || '';
       const passwordMsg = data?.password?.[0] || '';
@@ -52,10 +53,7 @@ function Login() {
       setPasswordError(passwordMsg);
 
       if (!usernameMsg && !passwordMsg) {
-        const message = error.message
-          ? `${error.message}.`
-          : 'An unexpected error occurred.';
-        setPopupMsg(message);
+        setPopupMsg(`${data.detail}.`);
         setShowPopup(true);
       }
     } finally {

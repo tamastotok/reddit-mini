@@ -52,12 +52,34 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+/*
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       logoutUser();
     }
+    return Promise.reject(error);
+  }
+);
+*/
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      // Only treat it as session expired if the user is already logged in
+      localStorage.getItem('access_token') && // or any other auth indicator
+      !originalRequest._retry // to prevent loops
+    ) {
+      const event = new Event('session-expired');
+      window.dispatchEvent(event);
+    }
+
     return Promise.reject(error);
   }
 );

@@ -11,7 +11,7 @@ import EditPost from './pages/EditPost';
 import UserProfile from './pages/User';
 import Settings from './pages/Settings';
 import Comments from './pages/Comments';
-import Popup from './components/Popup';
+import SessionExpiredPopup from './components/SessionExpiredPopUp';
 
 function RegisterAndLogout() {
   localStorage.clear();
@@ -27,9 +27,7 @@ function App() {
   const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
-    const handleSessionExpired = () => {
-      setSessionExpired(true);
-    };
+    const handleSessionExpired = () => setSessionExpired(true);
     window.addEventListener('session-expired', handleSessionExpired);
 
     return () => {
@@ -44,15 +42,11 @@ function App() {
 
   return (
     <>
-      {sessionExpired && (
-        <Popup
-          show={sessionExpired}
-          onClose={handlePopupClose}
-          title="Session Expired"
-          message="Your session has expired. Please log in again."
-        />
-      )}
       <BrowserRouter>
+        <SessionExpiredPopup
+          sessionExpired={sessionExpired}
+          handlePopupClose={handlePopupClose}
+        />
         <Routes>
           <Route
             path="/"
