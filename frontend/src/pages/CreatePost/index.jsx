@@ -17,7 +17,6 @@ function CreatePost() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(tags);
     try {
       await api.post('/api/post/create/', {
         author: userId,
@@ -63,7 +62,11 @@ function CreatePost() {
           />
         </Form.Group>
 
-        <CategorySelect category={category} setCategory={setCategory} />
+        <CategorySelect
+          category={category}
+          setCategory={setCategory}
+          required
+        />
         <TagSelect tags={tags} setTags={setTags} />
 
         <div className="mt-3 d-flex flex-row-reverse">

@@ -19,14 +19,15 @@
 ## 3. Homepage
 
 [✓] Error message for empty field search <br>
-[ ] Filter all posts by category <br>
+[✓] Filter all posts by category <br>
 [ ] Clickable post category - should work as tags
 
 ## 4. Search
 
 [ ] Search by profile should make user profile in the first place at results <br>
 [ ] Short by/Filter by dropdowns margin fix <br>
-[ ] Back button ui change
+[ ] Back button ui change <br>
+[ ] CategoryDropdown delete
 
 ## 5. Post
 
@@ -41,6 +42,7 @@
 [✓] Send/Cancel buttons margin fix <br>
 [✓] Upvote/Downvote buttons should be the same as in Post <br>
 [✓] Edit/Delete buttons ui (optional) <br>
+[ ] Comments/index.js change loading text to spinner
 
 ## 7. Settings
 
@@ -61,6 +63,7 @@
 
 [ ] Change text inputs to floating labels <br>
 [ ] CommentItem.jsx line 59: make an onClick function (refactor)
+[ ] Clicking on the logo doesn't refresh the front page
 
 ## Planned features
 

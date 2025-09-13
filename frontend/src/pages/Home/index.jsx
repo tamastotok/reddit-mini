@@ -2,22 +2,40 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import PostCard from '../../components/PostCard';
+import CategorySelect from '../../components/Post/CategorySelect';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 function Home() {
   const [posts, setPosts] = useState([]);
+  const [category, setCategory] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const disableSelectedElement = () => {
+    if (document.activeElement && document.activeElement.tagName === 'SELECT') {
+      document.activeElement.blur();
+    }
+  };
 
   const getPosts = async () => {
     try {
-      const res = await api.get('/api/posts/');
+      setLoading(true);
+      const url = category ? `/api/posts/?category=${category}` : '/api/posts';
+
+      const res = await api.get(url);
       setPosts(res.data);
+      disableSelectedElement();
     } catch (error) {
       console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
     }
   };
+
   useEffect(() => {
     getPosts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
 
   const refreshVotedPost = async (postId) => {
     try {
@@ -35,7 +53,15 @@ function Home() {
 
   return (
     <div className="container mt-4">
-      <h3>All Posts</h3>
+      {loading && <LoadingOverlay />}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h3>All Posts</h3>
+        <CategorySelect
+          category={category}
+          setCategory={setCategory}
+          showAllOption
+        />
+      </div>
       {posts.length === 0 ? (
         <p>No posts available.</p>
       ) : (

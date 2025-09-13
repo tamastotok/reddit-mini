@@ -1,31 +1,35 @@
-import { Form } from 'react-bootstrap';
-import { FloatingLabel } from 'react-bootstrap';
+import { Form, FloatingLabel } from 'react-bootstrap';
 import useFetchCategories from '../../hooks/useCategories';
-import { useState } from 'react';
 
-function CategorySelect({ category, setCategory }) {
+function CategorySelect({
+  category,
+  setCategory,
+  required = false,
+  showAllOption = false,
+  label = 'Category',
+}) {
   const { categories, loading } = useFetchCategories();
-  const [isHidden, setIsHidden] = useState(false);
 
   const handleChange = (e) => {
-    const value = e.target.value.trim();
-    setCategory(value);
-    if (value !== '') setIsHidden(true);
+    setCategory(e.target.value.trim());
   };
 
   return (
-    <FloatingLabel controlId="formCategory" label="Category" className="mt-3">
+    <FloatingLabel controlId="formCategory" label={label} className="mt-3">
       <Form.Select
         value={category}
         onChange={handleChange}
-        required
+        required={required}
         disabled={loading}
       >
-        {!isHidden && (
+        {showAllOption ? (
+          <option value="">All Categories</option>
+        ) : (
           <option value="" disabled hidden>
             Select a Category
           </option>
         )}
+
         {categories.map((cat, idx) => (
           <option key={idx} value={cat.value}>
             {cat.label}

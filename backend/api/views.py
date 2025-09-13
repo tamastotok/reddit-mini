@@ -121,13 +121,18 @@ class UserActivityView(APIView):
 
 class GetPosts(APIView):
     def get(self, request):
-        # Vote prefetch
+        category = request.query_params.get('category', None)
+
         posts = Post.objects.prefetch_related(
             Prefetch('votes', queryset=Vote.objects.all(), to_attr='post_votes_set')
-        ).all()
+        )
+
+        if category: 
+            posts = posts.filter(category=category)
 
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class GetCategories(APIView):
