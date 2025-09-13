@@ -45,7 +45,6 @@ function Login() {
 
       navigate('/');
     } catch (error) {
-      console.log(error);
       const data = error?.response?.data;
       const usernameMsg = data?.username?.[0] || '';
       const passwordMsg = data?.password?.[0] || '';
