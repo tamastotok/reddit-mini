@@ -57,7 +57,7 @@ function CommentItem({
                 style={{ cursor: 'pointer' }}
                 className="me-2 hover-bg-primary"
                 onClick={() => {
-                  handleEditComment(comment.id, editedContent);
+                  handleEditComment(comment.id, editedContent.trim());
                   toggleEditMode();
                 }}
               >
