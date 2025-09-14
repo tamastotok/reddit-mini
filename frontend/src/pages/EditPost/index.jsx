@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Button } from 'react-bootstrap';
 import NavigationButton from '../../components/NavigationButton';
-import PostForm from '../../components/Post/PostForm';
 import CategorySelect from '../../components/Post/CategorySelect';
 import TagSelect from '../../components/Post/TagSelect';
 import api from '../../utils/api';
@@ -14,8 +13,6 @@ function EditPost() {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('technology');
   const [tags, setTags] = useState([]);
-
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     const fetchPostData = async () => {
@@ -59,11 +56,6 @@ function EditPost() {
 
   return (
     <>
-      <PostForm
-        show={showSuccessModal}
-        handleClose={() => setShowSuccessModal(false)}
-      />
-
       <Form onSubmit={handleSubmit} className="mb-4 ps-3">
         <Form.Group controlId="formTitle">
           <Form.Label>Title</Form.Label>

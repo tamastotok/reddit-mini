@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.utils.translation import gettext_lazy as _
+from django.utils.text import slugify
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -34,11 +35,17 @@ class Vote(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=16)
+
+    def save(self, *args, **kwargs):       
+        if self.name:
+            self.name = slugify(self.name).lower()
+        
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
-
 
 class Post(models.Model):
 

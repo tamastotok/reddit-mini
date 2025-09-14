@@ -106,6 +106,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=16, error_messages={"max_length": "Tag must be 16 characters or less."})
+
     class Meta:
         model = Tag
         fields = ['id', 'name']

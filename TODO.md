@@ -28,6 +28,7 @@
 [ ] Short by/Filter by dropdowns margin fix <br>
 [ ] Back button ui change <br>
 [ ] CategoryDropdown delete
+[ ] Postcards are not the same
 
 ## 5. Post
 
@@ -62,8 +63,17 @@
 ## 10. Misc.
 
 [ ] Change text inputs to floating labels <br>
-[ ] CommentItem.jsx line 59: make an onClick function (refactor)
-[ ] Clicking on the logo doesn't refresh the front page
+[ ] CommentItem.jsx line 59: make an onClick function (refactor) <br>
+[ ] Clicking on the logo doesn't refresh the front page <br>
+[ ] Fix pytest null value errors <br>
+[ ] Session expired popup bug (login -> popup -> logout the user and redirect to login) <br>
+[ ] Tag names should have rules (max size, etc.) and needs ux refactor <br>
+[ ] At CreatePost change PostForm.jsx to Popup.jsx
+[ ] Shorten tag names on postcards (tags and button overflow error)
+[ ] Make Tag error message coming from the server
+[ ] Delete post not working
+[ ] Categories are trimmed on Postcards
+[ ] EditPost Postform deleted -> change to Popup
 
 ## Planned features
 
