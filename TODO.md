@@ -67,10 +67,10 @@
 [ ] Clicking on the logo doesn't refresh the front page <br>
 [ ] Fix pytest null value errors <br>
 [ ] Session expired popup bug (login -> popup -> logout the user and redirect to login) <br>
-[ ] Tag names should have rules (max size, etc.) and needs ux refactor <br>
-[ ] At CreatePost change PostForm.jsx to Popup.jsx
+[✓] Tag names should have rules (max size, etc.) and needs ux refactor <br>
+[✓] At CreatePost change PostForm.jsx to Popup.jsx
 [ ] Shorten tag names on postcards (tags and button overflow error)
-[ ] Make Tag error message coming from the server
+[✓] Make Tag error message coming from the server
 [ ] Delete post not working
 [ ] Categories are trimmed on Postcards
 [ ] EditPost Postform deleted -> change to Popup
