@@ -122,7 +122,7 @@ class PostSerializer(serializers.ModelSerializer):
     comments_count = serializers.IntegerField(source='comment_count', read_only=True)
 
     votes = VoteSerializer(many=True, read_only=True)
-    comments = CommentSerializer(many=True)
+    comments = CommentSerializer(many=True, read_only=True)
     category = serializers.ChoiceField(choices=Post.Category.choices, required=False)
     tags = TagSerializer(many=True)
 
@@ -152,6 +152,7 @@ class PostSerializer(serializers.ModelSerializer):
             'downvotes',
             'total_votes',
             'comments_count',
+            'comments',
         ]
 
     def create(self, validated_data):
