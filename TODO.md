@@ -68,11 +68,11 @@
 [ ] Fix pytest null value errors <br>
 [ ] Session expired popup bug (login -> popup -> logout the user and redirect to login) <br>
 [✓] Tag names should have rules (max size, etc.) and needs ux refactor <br>
-[✓] At CreatePost change PostForm.jsx to Popup.jsx
-[ ] Shorten tag names on postcards (tags and button overflow error)
-[✓] Make Tag error message coming from the server
-[ ] Delete post not working
-[ ] Categories are trimmed on Postcards
+[✓] At CreatePost change PostForm.jsx to Popup.jsx <br>
+[ ] Shorten tag names on postcards (tags and button overflow error) <br>
+[✓] Make Tag error message coming from the server <br>
+[ ] Delete post not working <br>
+[ ] Categories are trimmed on Postcards <br>
 [ ] EditPost Postform deleted -> change to Popup
 
 ## Planned features
