@@ -11,7 +11,7 @@ function CategorySelect({
   const { categories, loading } = useFetchCategories();
 
   const handleChange = (e) => {
-    setCategory(e.target.value.trim());
+    setCategory(e.target.value);
   };
 
   return (

@@ -126,6 +126,7 @@ class PostSerializer(serializers.ModelSerializer):
     votes = VoteSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     category = serializers.ChoiceField(choices=Post.Category.choices, required=False)
+    category_label = serializers.CharField(source='get_category_display', read_only=True)
     tags = TagSerializer(many=True)
 
     class Meta:
@@ -139,6 +140,7 @@ class PostSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
             'category',
+            'category_label',
             'tags',
             'upvotes',
             'downvotes',
@@ -155,6 +157,7 @@ class PostSerializer(serializers.ModelSerializer):
             'total_votes',
             'comments_count',
             'comments',
+            'category_label',
         ]
 
     def create(self, validated_data):

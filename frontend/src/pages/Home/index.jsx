@@ -31,6 +31,7 @@ function Home() {
 
       setPosts(res.data);
       disableSelectedElement();
+      console.log(res.data);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {

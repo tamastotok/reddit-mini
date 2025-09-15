@@ -71,8 +71,8 @@
 [✓] At CreatePost change PostForm.jsx to Popup.jsx <br>
 [ ] Shorten tag names on postcards (tags and button overflow error) <br>
 [✓] Make Tag error message coming from the server <br>
-[ ] Delete post not working <br>
-[ ] Categories are trimmed on Postcards <br>
+[ ] Delete post not working at /comments/... <br>
+[✓] Categories are trimmed on Postcards <br>
 [ ] EditPost Postform deleted -> change to Popup
 
 ## Planned features

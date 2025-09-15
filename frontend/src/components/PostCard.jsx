@@ -78,7 +78,9 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
 
           <div className="d-flex flex-wrap">
             {post.category && (
-              <span className="badge bg-secondary mr-2">{post.category}</span>
+              <span className="badge bg-secondary mr-2">
+                {post.category_label}
+              </span>
             )}
           </div>
         </Card.Body>
