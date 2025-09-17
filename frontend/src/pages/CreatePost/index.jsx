@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button } from 'react-bootstrap';
-import api from '../../utils/api';
+import api from '../../services/api';
 import CategorySelect from '../../components/Post/CategorySelect';
 import TagSelect from '../../components/Post/TagSelect';
 import NavigationButton from '../../components/NavigationButton';

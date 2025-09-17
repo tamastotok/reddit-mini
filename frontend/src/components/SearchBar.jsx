@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { InputGroup, FormControl } from 'react-bootstrap';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-//import api from '../utils/api';
-import searchPosts from '../utils/searchPosts';
+import { searchPosts } from '../utils/searchPosts';
 import Popup from './Popup';
 
 function SearchBar() {

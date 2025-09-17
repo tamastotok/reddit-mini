@@ -1,10 +1,15 @@
-import api from './api';
+import { searchAll } from '../services/search';
 
-const searchPosts = async (query, navigate, setPopupMsg, setShowPopup) => {
+export const searchPosts = async (
+  query,
+  navigate,
+  setPopupMsg,
+  setShowPopup
+) => {
   if (!query.trim()) return;
 
   try {
-    const res = await api.get(`/api/search/?q=${query}`);
+    const res = await searchAll(query);
     navigate('/post/search', { state: { results: res.data } });
   } catch (error) {
     const msg = error.message
@@ -16,5 +21,3 @@ const searchPosts = async (query, navigate, setPopupMsg, setShowPopup) => {
     navigate('/');
   }
 };
-
-export default searchPosts;

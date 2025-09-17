@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { logoutUser } from './logout';
+import { logoutUser } from '../utils/logout';
 import { jwtDecode } from 'jwt-decode';
-import { ACCESS_TOKEN, REFRESH_TOKEN } from './constants';
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '../utils/constants';
 
 const baseURL = import.meta.env.VITE_API_URL;
 
@@ -51,18 +51,6 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
-/*
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      logoutUser();
-    }
-    return Promise.reject(error);
-  }
-);
-*/
 
 api.interceptors.response.use(
   (response) => response,

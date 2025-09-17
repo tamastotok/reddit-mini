@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Button, Modal, Badge } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComments } from '@fortawesome/free-solid-svg-icons';
-import api from '../utils/api';
 
-import searchPosts from '../utils/searchPosts';
+import { searchPosts } from '../utils/searchPosts';
 import VoteButtonGroup from './VoteButtonGroup';
 import EditDeleteButtons from './EditDeleteButtons';
 
-const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
+import { deletePost } from '../services/posts';
+import { votePost } from '../services/posts';
+
+const PostCard = ({ post, handlePostClick, onRefresh }) => {
   const userId = Number(localStorage.getItem('user_id'));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
@@ -18,32 +20,31 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
   );
   const navigate = useNavigate();
 
+  //  Voting
   const handlePostVote = async (voteType) => {
     const newVoteType = userPostVote === voteType ? null : voteType;
 
     try {
-      await api.post(`/api/posts/${post.id}/vote/`, {
-        post: post.id,
-        vote_type: newVoteType,
-      });
-
+      await votePost(post.id, newVoteType);
       setUserPostVote(newVoteType);
-
-      refreshVotedPost(post.id);
+      if (onRefresh) await onRefresh(); // refresh parent if provided
     } catch (error) {
       console.error('Error voting:', error);
     }
   };
 
+  //  Tags
   const handleTagClick = (tagName) => {
     searchPosts(tagName, navigate);
   };
 
+  //  Edit
   const handleEditClick = (e) => {
     e.stopPropagation();
     navigate(`/post/${post.id}/edit`);
   };
 
+  //  Delete
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     setShowDeleteModal(true);
@@ -52,10 +53,10 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await api.delete(`/api/post/${postToDelete.id}/delete/`);
+      await deletePost(postToDelete.id);
       setShowDeleteModal(false);
       setPostToDelete(null);
-      getPosts();
+      if (onRefresh) await onRefresh();
     } catch (error) {
       console.error('Error deleting post:', error);
     }
@@ -78,9 +79,7 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
 
           <div className="d-flex flex-wrap">
             {post.category && (
-              <span className="badge bg-secondary mr-2">
-                {post.category_label}
-              </span>
+              <span className="badge bg-secondary mr-2">{post.category}</span>
             )}
           </div>
         </Card.Body>
@@ -121,6 +120,7 @@ const PostCard = ({ post, handlePostClick, refreshVotedPost, getPosts }) => {
         </Card.Footer>
       </Card>
 
+      {/* Delete Confirmation Modal */}
       <Modal show={showDeleteModal} onHide={handleDeleteCancel}>
         <Modal.Header closeButton>
           <Modal.Title>Delete Post</Modal.Title>

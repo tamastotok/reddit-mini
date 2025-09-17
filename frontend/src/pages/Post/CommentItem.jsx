@@ -7,8 +7,8 @@ import EditDeleteButtons from '../../components/EditDeleteButtons';
 function CommentItem({
   comment,
   userCommentVote,
-  handleCommentVote,
-  handleEditComment,
+  handleVoteComment,
+  handleUpdateComment,
   handleDeleteComment,
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -42,7 +42,7 @@ function CommentItem({
         <VoteButtonGroup
           userVote={userCommentVote}
           totalVotes={comment.total_votes}
-          onVote={(value) => handleCommentVote(comment.id, value)}
+          onVote={(value) => handleVoteComment(comment.id, value)}
         />
 
         {authorId === userId &&
@@ -57,7 +57,7 @@ function CommentItem({
                 style={{ cursor: 'pointer' }}
                 className="me-2 hover-bg-primary"
                 onClick={() => {
-                  handleEditComment(comment.id, editedContent.trim());
+                  handleUpdateComment(comment.id, editedContent.trim());
                   toggleEditMode();
                 }}
               >

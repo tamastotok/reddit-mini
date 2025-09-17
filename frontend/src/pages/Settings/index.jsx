@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Container, Row, Col, Alert, Spinner } from 'react-bootstrap';
-import api from '../../utils/api';
+import api from '../../services/api';
 import NavigationButton from '../../components/NavigationButton';
 import ProfileCard from './ProfileCard';
 import DeleteConfirmation from './DeleteConfirmation';

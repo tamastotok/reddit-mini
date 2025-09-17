@@ -10,7 +10,7 @@ import SearchPost from './pages/SearchPost';
 import EditPost from './pages/EditPost';
 import UserProfile from './pages/User';
 import Settings from './pages/Settings';
-import Comments from './pages/Comments';
+import Post from './pages/Post';
 import SessionExpiredPopup from './components/SessionExpiredPopUp';
 
 function RegisterAndLogout() {
@@ -101,10 +101,10 @@ function App() {
             }
           />
           <Route
-            path="/comments/:postId"
+            path="/post/:postId"
             element={
               <ProtectedRoute>
-                <Comments />
+                <Post />
               </ProtectedRoute>
             }
           />

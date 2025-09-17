@@ -2,7 +2,7 @@ import { Modal, Form, Button } from 'react-bootstrap';
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import api from '../../utils/api';
+import api from '../../services/api';
 
 function PasswordChange({ showPasswordModal, setShowPasswordModal, userId }) {
   const [oldPassword, setOldPassword] = useState('');

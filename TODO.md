@@ -73,7 +73,9 @@
 [✓] Make Tag error message coming from the server <br>
 [ ] Delete post not working at /comments/... <br>
 [✓] Categories are trimmed on Postcards <br>
-[ ] EditPost Postform deleted -> change to Popup
+[ ] EditPost Postform deleted -> change to Popup <br>
+[ ] User thrown out even when logged in after 1 day (needs refresh tokens after login)
+[ ] Delete Success message after create a post -> just redirect to '/'
 
 ## Planned features
 

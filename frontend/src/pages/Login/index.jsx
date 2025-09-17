@@ -9,7 +9,7 @@ import {
   USERNAME,
 } from '../../utils/constants';
 
-import api from '../../utils/api';
+import api from '../../services/api';
 import Popup from '../../components/Popup';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import FieldWithError from '../../components/Form/FieldWithError';

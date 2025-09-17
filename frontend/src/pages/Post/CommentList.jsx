@@ -4,8 +4,8 @@ import CommentItem from './CommentItem';
 function CommentList({
   comments,
   userCommentVote,
-  handleCommentVote,
-  handleEditComment,
+  handleVoteComment,
+  handleUpdateComment,
   handleDeleteComment,
 }) {
   return (
@@ -16,8 +16,8 @@ function CommentList({
             <CommentItem
               comment={comment}
               userCommentVote={userCommentVote[comment.id]}
-              handleCommentVote={handleCommentVote}
-              handleEditComment={handleEditComment}
+              handleVoteComment={handleVoteComment}
+              handleUpdateComment={handleUpdateComment}
               handleDeleteComment={handleDeleteComment}
             />
           </ListGroup.Item>

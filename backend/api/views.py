@@ -1,18 +1,20 @@
-from django.contrib.auth.models import User
 from rest_framework import generics, status
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from django.contrib.contenttypes.models import ContentType
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import (
     IsAuthenticated,
     AllowAny,
     IsAuthenticatedOrReadOnly,
 )
-from django.db.models import Count, Prefetch, Case, When, IntegerField, Q
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.views import APIView
+from django.contrib.auth.models import User
+from django.db.models import Count, Prefetch, Case, When, IntegerField, Q
 from django.middleware.csrf import get_token
+from django.shortcuts import get_object_or_404
 from django.http import Http404, JsonResponse
+from django.contrib.contenttypes.models import ContentType
+from .models import Post, Comment, Vote, UserProfile
 from .serializers import (
     UserSerializer,
     PostSerializer,
@@ -22,9 +24,6 @@ from .serializers import (
     UserProfileSerializer,
     ChangePasswordSerializer,
 )
-from .models import Post, Comment, Vote, UserProfile
-from rest_framework.exceptions import NotFound
-
 
 def csrf_token_view(request):
     csrf_token = get_token(request)
@@ -42,7 +41,6 @@ class CreateUserView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save()
-
         UserProfile.objects.create(user=user)
 
 
@@ -58,16 +56,13 @@ class EditUserView(generics.UpdateAPIView):
 
     def perform_update(self, serializer):
         user = serializer.save()
-
         user_profile, created = UserProfile.objects.get_or_create(user=user)
-
         # UserProfile update
         user_profile.bio = self.request.data.get('bio', user_profile.bio)
         user_profile.profile_picture = self.request.data.get(
             'profile_picture', user_profile.profile_picture
         )
         user_profile.save()
-
         return user  
 
 
@@ -81,12 +76,9 @@ class DeleteUserView(generics.DestroyAPIView):
 
 
 ### Clear database (test only for me):
-class DeleteAllPosts(APIView):
+class PostDeleteAllView(APIView):
     def delete(self, request):
-        # Delete all posts
         deleted_count, _ = Post.objects.all().delete()
-
-        # Return response
         return Response(
             {"message": f"{deleted_count} posts deleted."},
             status=status.HTTP_204_NO_CONTENT,
@@ -119,7 +111,7 @@ class UserActivityView(APIView):
         )
 
 
-class GetPosts(APIView):
+class PostListView(APIView):
     def get(self, request):
         category = request.query_params.get('category')
         sort = request.query_params.get('sort', 'date')  # default sort = date
@@ -165,7 +157,7 @@ class GetPosts(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class GetCategories(APIView):
+class PostCategoriesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -176,7 +168,7 @@ class GetCategories(APIView):
         return Response(categories)
 
 
-class CreatePost(generics.ListCreateAPIView):
+class PostCreateView(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
 
@@ -185,7 +177,7 @@ class CreatePost(generics.ListCreateAPIView):
         return post
 
 
-class RefreshPost(generics.RetrieveAPIView):
+class PostDetailView(generics.RetrieveAPIView):
     queryset = Post.objects.annotate(
         upvotes_count=Count(
             Case(When(votes__value=1, then=1), output_field=IntegerField())
@@ -229,8 +221,6 @@ class PostVoteView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        post = get_object_or_404(Post, id=post_id)
-
         content_type = ContentType.objects.get_for_model(Post)
 
         try:
@@ -254,17 +244,25 @@ class PostVoteView(generics.GenericAPIView):
                     value=vote_type,
                 )
 
-        post_total_votes = post.total_votes
+        # Calculate votes
+        upvotes = Vote.objects.filter(
+            content_type=content_type, object_id=post_id, value=1
+        ).count()
+        downvotes = Vote.objects.filter(
+            content_type=content_type, object_id=post_id, value=-1
+        ).count()
+        total_votes = upvotes - downvotes
 
         return Response(
             {
                 "message": "Vote toggled successfully.",
-                "upvotes": post.upvotes,
-                "downvotes": post.downvotes,
-                "total_votes": post_total_votes,
+                "upvotes": upvotes,
+                "downvotes": downvotes,
+                "total_votes": total_votes,
             },
             status=status.HTTP_200_OK,
         )
+
 
 
 class GetComments(generics.RetrieveAPIView):
@@ -295,7 +293,7 @@ class GetComments(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-class CreateComment(generics.CreateAPIView):
+class CommentCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = CommentSerializer
 
@@ -317,9 +315,7 @@ class CommentVoteView(generics.GenericAPIView):
             )
 
         post = get_object_or_404(Post, id=post_id)
-
         comment = get_object_or_404(post.comments.all(), id=comment_id)
-
         content_type = ContentType.objects.get_for_model(Comment)
 
         try:
@@ -374,14 +370,13 @@ class RefreshComment(generics.RetrieveAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class EditComment(generics.UpdateAPIView):
+class CommentUpdateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = CommentSerializer
 
     def get_object(self):
         post_id = self.kwargs.get('post_id')
         comment_id = self.kwargs.get('comment_id')
-
         comment = get_object_or_404(Comment, id=comment_id, post__id=post_id)
 
         # Check if the request user is the OG author
@@ -389,7 +384,6 @@ class EditComment(generics.UpdateAPIView):
             self.permission_denied(
                 self.request, message="You do not have permission to edit this comment."
             )
-
         return comment
 
     def update(self, request, *args, **kwargs):
@@ -398,17 +392,15 @@ class EditComment(generics.UpdateAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class DeleteComment(generics.DestroyAPIView):
+class CommentDeleteView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
         post_id = self.kwargs.get('post_id')
         comment_id = self.kwargs.get('comment_id')
-
         return get_object_or_404(Comment, id=comment_id, post__id=post_id)
 
     def delete(self, request, *args, **kwargs):
@@ -427,33 +419,28 @@ class DeleteComment(generics.DestroyAPIView):
         )
 
 
-class DeletePost(generics.DestroyAPIView):
+class PostDeleteView(generics.DestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
     def get_object(self):
-        """
-        Ensures the post exists or sends 404 error.
-        """
         obj = super().get_object()  
         if obj.author.id != self.request.user.id:
             raise PermissionDenied('You are not authorized to delete this post.')
         return obj
 
     def perform_destroy(self, instance):
-        """
-        """
         instance.delete()
         return Response(
             status=status.HTTP_204_NO_CONTENT
-        )  # Return a 204 status
+        )
 
 
-class EditPost(generics.UpdateAPIView):
+class PostUpdateView(generics.UpdateAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     lookup_field = 'id'
-    lookup_url_kwarg = 'post_id'  # Use 'post_id' in the URL
+    lookup_url_kwarg = 'post_id'
 
     def update(self, request, *args, **kwargs):
         post = self.get_object()
@@ -472,7 +459,7 @@ class EditPost(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class GetProfile(generics.RetrieveAPIView):
+class UserProfileView(generics.RetrieveAPIView):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
     lookup_field = 'pk'
@@ -503,7 +490,7 @@ class ChangeUserPassword(generics.UpdateAPIView):
         )
 
 
-class SearchPost(generics.ListAPIView):
+class PostSearchView(generics.ListAPIView):
     serializer_class = PostSerializer
 
     def get_queryset(self):

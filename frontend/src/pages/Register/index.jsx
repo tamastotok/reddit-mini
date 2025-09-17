@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
-import api from '../../utils/api';
+import api from '../../services/api';
 import Popup from '../../components/Popup';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import PasswordRequirements from '../../components/Form/PasswordRequirements';

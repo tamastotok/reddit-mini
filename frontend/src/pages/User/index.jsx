@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Tabs, Tab, Container, Row, Col } from 'react-bootstrap';
 
-import api from '../../utils/api';
+import api from '../../services/api';
 
 import UserPosts from './UserPosts';
 import UserComments from './UserComments';

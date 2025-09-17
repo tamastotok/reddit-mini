@@ -1,6 +1,6 @@
 import { Card, Image, Button, Form } from 'react-bootstrap';
 import { useState } from 'react';
-import api from '../../utils/api';
+import api from '../../services/api';
 
 function ProfileCard({
   userData,

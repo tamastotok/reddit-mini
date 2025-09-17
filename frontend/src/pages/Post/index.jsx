@@ -1,15 +1,22 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button, Form } from 'react-bootstrap';
-import api from '../../utils/api';
+import api from '../../services/api';
 import PostCard from '../../components/PostCard';
 import CommentList from './CommentList';
+import { getPostById } from '../../services/posts';
+import {
+  createComment,
+  updateComment,
+  deleteComment,
+  voteComment,
+} from '../../services/comments';
 
-function Comments() {
+function Post() {
   const [post, setPost] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
-  const [userPostVote, setUserPostVote] = useState({});
+  //const [userPostVote, setUserPostVote] = useState({});
   const [userCommentVote, setUserCommentVote] = useState({});
   const [isFocused, setIsFocused] = useState(false);
   const { postId } = useParams();
@@ -17,6 +24,63 @@ function Comments() {
   const userId = Number(localStorage.getItem('user_id'));
 
   const refreshVotedPost = async (id) => {
+    try {
+      const res = await getPostById(id);
+      setPost(res.data);
+      setComments(res.data.comments);
+      const commentVotesMap = {};
+
+      res.data.comments.forEach((comment) => {
+        comment.votes.forEach((vote) => {
+          if (vote.user_id === userId) {
+            commentVotesMap[comment.id] = vote.value;
+          }
+        });
+      });
+
+      setUserCommentVote(commentVotesMap);
+    } catch (error) {
+      console.error('Error fetching post:', error.message);
+    }
+  };
+
+  const getPost = async () => {
+    try {
+      const res = await getPostById(postId);
+
+      setPost(res.data);
+      setComments(res.data.comments);
+
+      const userPostVoteMap = {};
+      res.data.votes.forEach((vote) => {
+        if (vote.user_id === userId) {
+          userPostVoteMap[postId] = vote.value;
+        }
+      });
+
+      //setUserPostVote(userPostVoteMap);
+
+      const userCommentVoteMap = {};
+      res.data.comments.forEach((comment) => {
+        comment.votes.forEach((vote) => {
+          if (vote.user_id === userId) {
+            userCommentVoteMap[comment.id] = vote.value;
+          }
+        });
+      });
+
+      setUserCommentVote(userCommentVoteMap);
+    } catch (error) {
+      console.error('Error fetching post:', error);
+    }
+  };
+
+  useEffect(() => {
+    getPost();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
+  const refreshVotedPostComments = async (id) => {
     try {
       const res = await api.get(`/api/posts/${id}/`);
       setPost(res.data);
@@ -37,72 +101,11 @@ function Comments() {
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    const getPost = async () => {
-      try {
-        const res = await api.get(`/api/comments/${postId}/`);
-        if (isMounted) {
-          setPost(res.data);
-          setComments(res.data.comments);
-
-          const userPostVoteMap = {};
-          res.data.votes.forEach((vote) => {
-            if (vote.user_id === userId) {
-              userPostVoteMap[postId] = vote.value;
-            }
-          });
-          setUserPostVote(userPostVoteMap);
-
-          const userCommentVoteMap = {};
-          res.data.comments.forEach((comment) => {
-            comment.votes.forEach((vote) => {
-              if (vote.user_id === userId) {
-                userCommentVoteMap[comment.id] = vote.value;
-              }
-            });
-          });
-
-          setUserCommentVote(userCommentVoteMap);
-        }
-      } catch (error) {
-        console.error('Error fetching post:', error);
-      }
-    };
-
-    getPost();
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
-
-  const handlePostVote = async (postId, voteType) => {
-    const currentVote = userPostVote[postId];
-    const newVoteType = currentVote === voteType ? null : voteType;
-
-    try {
-      await api.post(`/api/posts/${postId}/vote/`, {
-        post: postId,
-        vote_type: newVoteType,
-      });
-      setUserPostVote((prevVotes) => ({
-        ...prevVotes,
-        [postId]: newVoteType,
-      }));
-      refreshVotedPost(postId);
-    } catch (error) {
-      console.error('Error voting:', error);
-    }
-  };
-
-  const handleSendComment = async () => {
+  const handleCreateComment = async () => {
     if (!commentText.trim()) return;
 
     try {
-      const res = await api.post(`/api/comments/${postId}/create/`, {
-        content: commentText,
-      });
+      const res = await createComment(postId, { content: commentText });
 
       setComments([...comments, res.data]);
       setCommentText('');
@@ -112,14 +115,11 @@ function Comments() {
     }
   };
 
-  const handleEditComment = async (commentId, content) => {
+  const handleUpdateComment = async (commentId, content) => {
     if (!content.trim()) return;
 
     try {
-      const res = await api.put(
-        `/api/comments/${postId}/update/${commentId}/`,
-        { content }
-      );
+      const res = await updateComment(commentId, { content });
 
       setComments((prevComments) =>
         prevComments.map((comment) =>
@@ -134,7 +134,7 @@ function Comments() {
 
   const handleDeleteComment = async (commentId) => {
     try {
-      await api.delete(`/api/comments/${postId}/delete/${commentId}/`);
+      await deleteComment(commentId);
       setComments((prevComments) =>
         prevComments.filter((comment) => comment.id !== commentId)
       );
@@ -143,14 +143,12 @@ function Comments() {
     }
   };
 
-  const handleCommentVote = async (commentId, voteType) => {
+  const handleVoteComment = async (commentId, voteType) => {
     const currentVote = userCommentVote[commentId];
     const newVoteType = currentVote === voteType ? null : voteType;
 
     try {
-      await api.post(`/api/comments/${postId}/${commentId}/vote/`, {
-        vote_type: newVoteType,
-      });
+      await voteComment(commentId, newVoteType);
       setUserCommentVote((prevVotes) => ({
         ...prevVotes,
         [commentId]: newVoteType,
@@ -173,8 +171,8 @@ function Comments() {
       <PostCard
         post={post}
         handlePostClick={(postId) => navigate(`/comments/${postId}`)}
-        handleVote={handlePostVote}
-        userVotes={userPostVote}
+        onRefreshPost={() => navigate('/')}
+        onRefreshVotes={refreshVotedPostComments}
       />
 
       <Form className="mb-3">
@@ -204,7 +202,7 @@ function Comments() {
               className="rounded-pill"
               variant="primary"
               onClick={() => {
-                handleSendComment(commentText);
+                handleCreateComment(commentText);
                 setCommentText('');
                 setIsFocused(false);
               }}
@@ -218,8 +216,8 @@ function Comments() {
       <CommentList
         comments={comments}
         userCommentVote={userCommentVote}
-        handleCommentVote={handleCommentVote}
-        handleEditComment={handleEditComment}
+        handleVoteComment={handleVoteComment}
+        handleUpdateComment={handleUpdateComment}
         handleDeleteComment={handleDeleteComment}
       />
     </div>
@@ -228,4 +226,4 @@ function Comments() {
   );
 }
 
-export default Comments;
+export default Post;

@@ -1,5 +1,5 @@
 import { Modal, Button } from 'react-bootstrap';
-import api from '../../utils/api';
+import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 function DeleteConfirmation({ showModal, setShowModal, userId }) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../utils/api';
+import api from '../../services/api';
 import PostCard from '../../components/PostCard';
 import CategorySelect from '../../components/Post/CategorySelect';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -31,7 +31,6 @@ function Home() {
 
       setPosts(res.data);
       disableSelectedElement();
-      console.log(res.data);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
@@ -76,9 +75,9 @@ function Home() {
           <PostCard
             key={post.id}
             post={post}
-            handlePostClick={(postId) => navigate(`/comments/${postId}`)}
-            refreshVotedPost={refreshVotedPost}
-            getPosts={getPosts}
+            handlePostClick={(postId) => navigate(`/post/${postId}`)}
+            onRefreshPost={getPosts}
+            onRefreshVotes={refreshVotedPost}
           />
         ))
       )}

@@ -4,7 +4,7 @@ import { Form, Button } from 'react-bootstrap';
 import NavigationButton from '../../components/NavigationButton';
 import CategorySelect from '../../components/Post/CategorySelect';
 import TagSelect from '../../components/Post/TagSelect';
-import api from '../../utils/api';
+import api from '../../services/api';
 
 function EditPost() {
   const { postId } = useParams();
