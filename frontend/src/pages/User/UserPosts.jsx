@@ -14,7 +14,7 @@ const UserPosts = ({ posts }) => {
   };
 
   const refreshVotedPost = async (postId) => {
-    navigate(`/user/${username}`);
+    navigate(`/user/${postId}`);
   };
 
   return (

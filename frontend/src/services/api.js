@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { logoutUser } from '../utils/logout';
+import { logoutUser } from '../utils/logoutUser';
 import { jwtDecode } from 'jwt-decode';
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../utils/constants';
 
@@ -37,9 +37,6 @@ api.interceptors.request.use(
           logoutUser();
           return Promise.reject(err);
         }
-      } else {
-        window.location.href = '/login';
-        return Promise.reject(new Error('No refresh token found.'));
       }
     }
 
@@ -61,7 +58,7 @@ api.interceptors.response.use(
       error.response &&
       error.response.status === 401 &&
       // Only treat it as session expired if the user is already logged in
-      localStorage.getItem('access_token') && // or any other auth indicator
+      localStorage.getItem(ACCESS_TOKEN) && // or any other auth indicator
       !originalRequest._retry // to prevent loops
     ) {
       const event = new Event('session-expired');

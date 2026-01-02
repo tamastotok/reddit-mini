@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { registerUser } from '../../services/user';
 
-import api from '../../services/api';
 import Popup from '../../components/Popup';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import PasswordRequirements from '../../components/Form/PasswordRequirements';
@@ -40,7 +40,7 @@ function Register() {
     setPopupMsg('');
 
     try {
-      await api.post('/api/user/register/', {
+      await registerUser({
         email,
         username,
         password,

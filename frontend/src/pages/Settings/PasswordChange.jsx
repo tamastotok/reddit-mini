@@ -2,7 +2,7 @@ import { Modal, Form, Button } from 'react-bootstrap';
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import api from '../../services/api';
+import { changePassword } from '../../services/user';
 
 function PasswordChange({ showPasswordModal, setShowPasswordModal, userId }) {
   const [oldPassword, setOldPassword] = useState('');
@@ -25,7 +25,7 @@ function PasswordChange({ showPasswordModal, setShowPasswordModal, userId }) {
       return;
     }
     try {
-      await api.put(`/api/user/${userId}/change-password/`, {
+      await changePassword(userId, {
         current_password: oldPassword,
         new_password: newPassword,
       });
@@ -36,7 +36,6 @@ function PasswordChange({ showPasswordModal, setShowPasswordModal, userId }) {
       alert('Failed to change password.');
     }
   };
-
   return (
     <Modal show={showPasswordModal} onHide={() => setShowPasswordModal(false)}>
       <Modal.Header closeButton>

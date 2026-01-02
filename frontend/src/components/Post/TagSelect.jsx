@@ -76,7 +76,11 @@ function TagSelect({ tags, setTags }) {
             />
           </FloatingLabel>
           <Button
-            variant="outline-primary"
+            variant={
+              tags.length >= 3 || !tagInput.trim()
+                ? 'outline-secondary'
+                : 'outline-primary'
+            }
             onClick={addTag}
             disabled={tags.length >= 3 || !tagInput.trim()}
           >

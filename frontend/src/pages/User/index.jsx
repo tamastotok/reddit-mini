@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Tabs, Tab, Container, Row, Col } from 'react-bootstrap';
-
-import api from '../../services/api';
-
+import { getUserActivity } from '../../services/user';
+import LoadingOverlay from '../../components/LoadingOverlay';
 import UserPosts from './UserPosts';
 import UserComments from './UserComments';
 
 const UserProfile = () => {
   const [username, setUsername] = useState(null);
   const [data, setData] = useState({ posts: [], comments: [] });
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +21,7 @@ const UserProfile = () => {
     const fetchData = async () => {
       try {
         if (!username) return;
-        const res = await api.get(`/api/user-activity/${username}/`);
+        const res = await getUserActivity(username);
         const { posts, comments } = res.data;
         setData({ posts, comments });
       } catch (error) {
@@ -37,7 +35,7 @@ const UserProfile = () => {
   }, [username]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingOverlay message="Loading profile..." />;
   }
 
   return (

@@ -1,36 +1,34 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Row, Col, Container } from 'react-bootstrap';
+import { getAllPosts, getPostById } from '../../services/posts';
 import PostCard from '../../components/PostCard';
-import CategorySelect from '../../components/Post/CategorySelect';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import SortSelect from '../../components/SortSelect';
+import Sidebar from '../../components/SideBar';
+import SubscribeButton from '../../components/SubscribeButton';
 
 function Home() {
-  const [posts, setPosts] = useState([]);
-  const [category, setCategory] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sortBy, setSortBy] = useState('date');
-
+  const { slug } = useParams();
   const navigate = useNavigate();
 
-  const disableSelectedElement = () => {
-    if (document.activeElement && document.activeElement.tagName === 'SELECT') {
-      document.activeElement.blur();
-    }
-  };
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const getPosts = async () => {
+  const [sortBy, setSortBy] = useState('new');
+  const [timeframe, setTimeframe] = useState('today');
+
+  const listAllPosts = async () => {
+    const currentTopic = slug || 'home';
+
     try {
       setLoading(true);
-
-      const url = `/api/posts/?${
-        category ? `category=${category}&` : ''
-      }sort=${sortBy}`;
-      const res = await api.get(url);
-
+      const res = await getAllPosts({
+        topic: currentTopic,
+        sort: sortBy,
+        timeframe: sortBy === 'top' ? timeframe : undefined,
+      });
       setPosts(res.data);
-      disableSelectedElement();
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
@@ -38,50 +36,73 @@ function Home() {
     }
   };
 
-  useEffect(() => {
-    getPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, sortBy]);
-
   const refreshVotedPost = async (postId) => {
     try {
-      const res = await api.get(`/api/posts/${postId}/`);
+      const res = await getPostById(postId);
       setPosts((prevPosts) =>
-        prevPosts.map((post) => (post.id === postId ? res.data : post))
+        prevPosts.map((p) => (p.id === postId ? res.data : p))
       );
     } catch (error) {
-      console.error(
-        'Error fetching post:',
-        error.response ? error.response.data : error.message
-      );
+      console.error('Error refreshing post:', error);
     }
   };
 
+  useEffect(() => {
+    listAllPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, sortBy, timeframe]);
+
   return (
-    <div className="container mt-4">
+    <Container className="mt-4">
       {loading && <LoadingOverlay />}
-      <div className="d-flex gap-2 align-items-center mb-3">
-        <CategorySelect
-          category={category}
-          setCategory={setCategory}
-          showAllOption
-        />
-        <SortSelect sortBy={sortBy} setSortBy={setSortBy} />
-      </div>
-      {posts.length === 0 ? (
-        <p>No posts available.</p>
-      ) : (
-        posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            handlePostClick={(postId) => navigate(`/post/${postId}`)}
-            onRefreshPost={getPosts}
-            onRefreshVotes={refreshVotedPost}
-          />
-        ))
-      )}
-    </div>
+
+      <Row>
+        <Col md={3} className="d-none d-md-block">
+          <Sidebar />
+        </Col>
+
+        {slug && slug !== 'all' && slug !== 'home' && (
+          <div className="d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded shadow-sm border">
+            <h2 className="mb-0">r/{slug}</h2>
+            <SubscribeButton topicSlug={slug} initialIsSubscribed={false} />
+          </div>
+        )}
+
+        <Col md={9} xs={12}>
+          <div className="mb-4">
+            <SortSelect
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              timeframe={timeframe}
+              setTimeframe={setTimeframe}
+            />
+          </div>
+
+          <div className="post-feed">
+            {posts.length === 0 && !loading ? (
+              <div className="text-center p-5 bg-white rounded shadow-sm border">
+                <h5>No posts here yet.</h5>
+                <p className="text-muted">
+                  {slug === 'home'
+                    ? 'Subscribe to some communities to see posts here!'
+                    : 'Be the first one to share something in this community!'}
+                </p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  handlePostClick={(id) => navigate(`/post/${id}`)}
+                  onRefreshPost={listAllPosts}
+                  onRefreshVotes={refreshVotedPost}
+                />
+              ))
+            )}
+          </div>
+        </Col>
+      </Row>
+    </Container>
   );
 }
 

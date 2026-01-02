@@ -1,11 +1,5 @@
 import api from './api';
 
-// ---- GET ----
-// Get a single comment by its ID
-// No idea of what is this
-export const getCommentById = (commentId) =>
-  api.get(`/api/comment/${commentId}/`);
-
 // ---- CREATE ----
 export const createComment = (postId, data) =>
   api.post(`/api/post/${postId}/comment/create/`, data);
@@ -15,8 +9,8 @@ export const updateComment = (commentId, data) =>
   api.put(`/api/comment/${commentId}/update/`, data);
 
 // ---- DELETE ----
-export const deleteComment = (commentId) =>
-  api.delete(`/api/comment/${commentId}/delete/`);
+export const deleteComment = (postId, commentId) =>
+  api.delete(`/api/post/${postId}/comment/${commentId}/delete/`);
 
 // ---- VOTE ----
 export const voteComment = (commentId, voteType) =>

@@ -2,13 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import {
-  ACCESS_TOKEN,
-  REFRESH_TOKEN,
-  USER_ID,
-  USERNAME,
-} from '../../utils/constants';
-
+import { saveAuthData } from '../../utils/auth';
 import api from '../../services/api';
 import Popup from '../../components/Popup';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -37,12 +31,7 @@ function Login() {
 
     try {
       const res = await api.post('/api/token/', { username, password });
-
-      localStorage.setItem(ACCESS_TOKEN, res.data.access);
-      localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-      localStorage.setItem(USER_ID, res.data.user_id);
-      localStorage.setItem(USERNAME, username);
-
+      saveAuthData({ ...res.data, username });
       navigate('/');
     } catch (error) {
       const data = error?.response?.data;

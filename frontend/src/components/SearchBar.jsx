@@ -3,17 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import { InputGroup, FormControl } from 'react-bootstrap';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { searchPosts } from '../utils/searchPosts';
+import { searchAll } from '../services/search';
 import Popup from './Popup';
+import usePopup from '../hooks/usePopup';
 
 function SearchBar() {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupMsg, setPopupMsg] = useState('');
+  const { showPopup, popupTitle, popupMsg, openPopup, closePopup } = usePopup();
 
-  const onSearch = () => {
-    searchPosts(query, navigate, setPopupMsg, setShowPopup);
+  const onSearch = async () => {
+    if (!query.trim()) return;
+
+    try {
+      const res = await searchAll(query);
+      navigate('/post/search', { state: { results: res.data } });
+    } catch (error) {
+      const msg = error.message
+        ? `${error.message}.`
+        : 'An unexpected error occurred.';
+      console.error(error);
+      openPopup('Search Error', msg);
+      navigate('/');
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -26,8 +38,8 @@ function SearchBar() {
     <div className="mt-3">
       <Popup
         show={showPopup}
-        onClose={() => setShowPopup(false)}
-        title="Search Error"
+        onClose={closePopup}
+        title={popupTitle}
         message={popupMsg}
       />
       <InputGroup>

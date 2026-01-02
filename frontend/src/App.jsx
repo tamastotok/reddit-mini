@@ -12,6 +12,7 @@ import UserProfile from './pages/User';
 import Settings from './pages/Settings';
 import Post from './pages/Post';
 import SessionExpiredPopup from './components/SessionExpiredPopUp';
+import CreateTopic from './pages/CreateTopic';
 
 function RegisterAndLogout() {
   localStorage.clear();
@@ -56,10 +57,28 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/r/:slug"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/login" element={<Login />} />
           <Route path="/logout" element={<Logout />} />
           <Route path="*" element={<NotFound />} />
+          <Route
+            path="/create-topic"
+            element={
+              <ProtectedRoute>
+                <CreateTopic />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/post/create"
             element={

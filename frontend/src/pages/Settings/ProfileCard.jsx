@@ -1,6 +1,6 @@
 import { Card, Image, Button, Form } from 'react-bootstrap';
 import { useState } from 'react';
-import api from '../../services/api';
+import { updateUserProfile } from '../../services/user';
 
 function ProfileCard({
   userData,
@@ -26,11 +26,9 @@ function ProfileCard({
     if (editedData.profile_picture) {
       formData.append('profile_picture', editedData.profile_picture);
     }
+
     try {
-      console.log(userData);
-      const res = await api.put(`/api/user/${userData.id}/edit/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await updateUserProfile(userData.id, formData);
       fetchProfile();
       setEditedData(res.data);
       setIsEditing(false);

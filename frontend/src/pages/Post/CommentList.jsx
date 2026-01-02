@@ -3,28 +3,27 @@ import CommentItem from './CommentItem';
 
 function CommentList({
   comments,
-  userCommentVote,
   handleVoteComment,
   handleUpdateComment,
   handleDeleteComment,
+  handleCreateReply,
 }) {
   return (
-    <ListGroup variant="flush">
-      {comments.length > 0 ? (
-        comments.map((comment) => (
-          <ListGroup.Item key={comment.id}>
-            <CommentItem
-              comment={comment}
-              userCommentVote={userCommentVote[comment.id]}
-              handleVoteComment={handleVoteComment}
-              handleUpdateComment={handleUpdateComment}
-              handleDeleteComment={handleDeleteComment}
-            />
-          </ListGroup.Item>
-        ))
-      ) : (
-        <p>No comments yet.</p>
-      )}
+    <ListGroup variant="flush" className="border-0">
+      {comments && comments.length > 0
+        ? comments.map((comment) => (
+            <ListGroup.Item key={comment.id} className="border-0 pb-0 pe-0">
+              <CommentItem
+                comment={comment}
+                userCommentVote={comment.user_vote}
+                handleVoteComment={handleVoteComment}
+                handleUpdateComment={handleUpdateComment}
+                handleDeleteComment={handleDeleteComment}
+                handleCreateReply={handleCreateReply}
+              />
+            </ListGroup.Item>
+          ))
+        : null}
     </ListGroup>
   );
 }

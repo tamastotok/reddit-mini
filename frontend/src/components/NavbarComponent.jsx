@@ -9,14 +9,19 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import { useState, useEffect } from 'react';
+import { logoutUser } from '../utils/logoutUser';
 
 function NavbarComponent() {
   const [username, setUsername] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logoutUser(); // handles API + localStorage cleanup
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const handleCreatePost = () => {

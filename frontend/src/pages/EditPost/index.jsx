@@ -1,99 +1,80 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Form, Button } from 'react-bootstrap';
-import NavigationButton from '../../components/NavigationButton';
-import CategorySelect from '../../components/Post/CategorySelect';
-import TagSelect from '../../components/Post/TagSelect';
-import api from '../../services/api';
+import { getPostById, updatePost } from '../../services/posts';
+import usePopup from '../../hooks/usePopup';
+import Popup from '../../components/Popup';
+import PostForm from '../../components/Post/PostForm';
 
 function EditPost() {
   const { postId } = useParams();
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('technology');
-  const [tags, setTags] = useState([]);
+  const popup = usePopup();
+
+  const [post, setPost] = useState({
+    title: '',
+    content: '',
+    category: '',
+    tags: [],
+  });
 
   useEffect(() => {
     const fetchPostData = async () => {
       try {
-        const res = await api.get(`/api/posts/${postId}/`);
-        setTitle(res.data.title);
-        setContent(res.data.content);
-        setCategory(res.data.category);
-        setTags(res.data.tags);
+        const res = await getPostById(postId);
+        setPost(res.data);
       } catch (error) {
         console.error('Error fetching post data:', error);
+        popup.openPopup('Error', 'Failed to load post data.');
       }
     };
 
     fetchPostData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      await api.put(`/api/post/${postId}/update/`, {
-        title,
-        content,
-        category,
-        tags: tags.map((tag) => ({ name: tag })),
+      await updatePost(postId, {
+        ...post,
+        tags: post.tags.map((tag) =>
+          typeof tag === 'string' ? { name: tag } : tag
+        ),
       });
-      console.log('Post updated successfully');
-      navigate('/');
+
+      popup.openPopup('Success', 'Post updated successfully.');
     } catch (error) {
-      console.error('Error updating post:', error);
+      const backendMessage =
+        error.response?.data?.detail ||
+        'Something went wrong. Please try again.';
+      popup.openPopup('Error', backendMessage);
     }
   };
 
-  const resetForm = () => {
-    setTitle('');
-    setContent('');
-    setCategory('technology');
-    setTags([]);
+  const handleClosePopup = () => {
+    if (popup.title === 'Success') {
+      popup.closePopup();
+      navigate('/');
+    } else {
+      popup.closePopup();
+    }
   };
 
   return (
     <>
-      <Form onSubmit={handleSubmit} className="mb-4 ps-3">
-        <Form.Group controlId="formTitle">
-          <Form.Label>Title</Form.Label>
-          <Form.Control
-            type="text"
-            placeholder="Enter post title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group controlId="formContent">
-          <Form.Label>Content</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            placeholder="Enter post content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        {/* Category and Tag Select Components */}
-        <CategorySelect category={category} setCategory={setCategory} />
-        <TagSelect tags={tags} setTags={setTags} />
-
-        <div className="mt-3">
-          <Button variant="primary" type="submit" className="me-2">
-            Update
-          </Button>
-          <Button variant="secondary" onClick={resetForm} className="me-2">
-            Cancel
-          </Button>
-          <NavigationButton variant="secondary" url="/" name="Back" />
-        </div>
-      </Form>
+      <Popup
+        show={popup.show}
+        onClose={handleClosePopup}
+        title={popup.title}
+        message={popup.message}
+      />
+      <PostForm
+        post={post}
+        setPost={setPost}
+        onSubmit={handleSubmit}
+        submitLabel="Update"
+      />
     </>
   );
 }

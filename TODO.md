@@ -57,7 +57,7 @@
 
 ## 9. Database
 
-[ ] Refactor the whole db model <br>
+[ ] Refactor the whole db model (maybe) <br>
 [ ] Create ER model, Relational model in draw.io for documentation
 
 ## 10. Misc.
@@ -71,16 +71,18 @@
 [✓] At CreatePost change PostForm.jsx to Popup.jsx <br>
 [ ] Shorten tag names on postcards (tags and button overflow error) <br>
 [✓] Make Tag error message coming from the server <br>
-[ ] Delete post not working at /comments/... <br>
+[✓] Delete post not working at /comments/... <br>
 [✓] Categories are trimmed on Postcards <br>
 [ ] EditPost Postform deleted -> change to Popup <br>
-[ ] User thrown out even when logged in after 1 day (needs refresh tokens after login)
-[ ] Delete Success message after create a post -> just redirect to '/'
+[ ] User thrown out even when logged in after 1 day (needs refresh tokens after login) <br>
+[ ] Delete Success message after create a post -> just redirect to '/' <br>
+[ ] Check every component that uses Popup.jsx and use the custom hook in them <br>
+[ ] Change loading texts to LoadingOverlay.jsx <br>
+[ ] Home.jsx is redundant, needs refactor <br>
+[✓] Post Voting is bugged when the post has comments, total.votes trigger total.comments
 
 ## Planned features
 
 - Dark mode
-- Reply system
 - Role system
 - Report system
-- Subforum system

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Container, Row, Col, Alert, Spinner } from 'react-bootstrap';
-import api from '../../services/api';
+import { getUserProfile } from '../../services/user';
 import NavigationButton from '../../components/NavigationButton';
 import ProfileCard from './ProfileCard';
 import DeleteConfirmation from './DeleteConfirmation';
@@ -21,12 +21,12 @@ function Settings() {
 
   const fetchProfile = async () => {
     try {
-      const res = await api.get(`/api/profile/${userId}`);
+      const res = await getUserProfile(userId);
       setUserData(res.data);
-      setLoading(false);
     } catch (error) {
       console.error(error);
       setError('Failed to load user profile');
+    } finally {
       setLoading(false);
     }
   };
@@ -34,7 +34,7 @@ function Settings() {
   useEffect(() => {
     fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   return (
     <Container className="mt-4">

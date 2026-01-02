@@ -21,3 +21,8 @@ export const updateUserProfile = (userId, formData) =>
 
 // ---- DELETE USER ----
 export const deleteUser = (userId) => api.delete(`/api/user/${userId}/delete/`);
+
+// ---- LOGOUT USER ----
+export const logout = async (refreshToken) => {
+  return api.post('/api/logout/', { refresh: refreshToken });
+};

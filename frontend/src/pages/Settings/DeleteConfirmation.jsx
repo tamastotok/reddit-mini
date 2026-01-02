@@ -1,13 +1,13 @@
 import { Modal, Button } from 'react-bootstrap';
-import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import { deleteUser } from '../../services/user';
 
 function DeleteConfirmation({ showModal, setShowModal, userId }) {
   const navigate = useNavigate();
 
   const handleDeleteConfirm = async () => {
     try {
-      await api.delete(`/api/user/${userId}/delete/`);
+      await deleteUser(userId);
       navigate('/register');
     } catch (error) {
       console.error('Failed to delete profile:', error);

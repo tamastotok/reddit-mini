@@ -8,43 +8,62 @@ import { searchPosts } from '../utils/searchPosts';
 import VoteButtonGroup from './VoteButtonGroup';
 import EditDeleteButtons from './EditDeleteButtons';
 
-import { deletePost } from '../services/posts';
-import { votePost } from '../services/posts';
+import { deletePost, votePost } from '../services/posts';
 
-const PostCard = ({ post, handlePostClick, onRefresh }) => {
+const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
   const userId = Number(localStorage.getItem('user_id'));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
+
+  // track user vote + vote counts locally
   const [userPostVote, setUserPostVote] = useState(
     post.votes.find((vote) => vote.user_id === userId)?.value || null
   );
+  const [voteCounts, setVoteCounts] = useState({
+    total: post.total_votes,
+    upvotes: post.upvotes ?? 0,
+    downvotes: post.downvotes ?? 0,
+  });
+
   const navigate = useNavigate();
 
-  //  Voting
+  // --- Voting ---
   const handlePostVote = async (voteType) => {
     const newVoteType = userPostVote === voteType ? null : voteType;
 
     try {
-      await votePost(post.id, newVoteType);
+      const res = await votePost(post.id, newVoteType);
+
       setUserPostVote(newVoteType);
-      if (onRefresh) await onRefresh(); // refresh parent if provided
+
+      // Update local state instead of mutating props
+      if (res.data?.total_votes !== undefined) {
+        setVoteCounts({
+          total: res.data.total_votes,
+          upvotes: res.data.upvotes,
+          downvotes: res.data.downvotes,
+        });
+      }
+
+      // Trigger parent refresh if needed
+      if (onRefreshPost) await onRefreshPost();
     } catch (error) {
       console.error('Error voting:', error);
     }
   };
 
-  //  Tags
+  // --- Tags ---
   const handleTagClick = (tagName) => {
     searchPosts(tagName, navigate);
   };
 
-  //  Edit
+  // --- Edit ---
   const handleEditClick = (e) => {
     e.stopPropagation();
     navigate(`/post/${post.id}/edit`);
   };
 
-  //  Delete
+  // --- Delete ---
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     setShowDeleteModal(true);
@@ -56,7 +75,7 @@ const PostCard = ({ post, handlePostClick, onRefresh }) => {
       await deletePost(postToDelete.id);
       setShowDeleteModal(false);
       setPostToDelete(null);
-      if (onRefresh) await onRefresh();
+      if (onRefreshPost) await onRefreshPost();
     } catch (error) {
       console.error('Error deleting post:', error);
     }
@@ -88,7 +107,7 @@ const PostCard = ({ post, handlePostClick, onRefresh }) => {
           <div className="d-flex align-items-center">
             <VoteButtonGroup
               userVote={userPostVote}
-              totalVotes={post.total_votes}
+              totalVotes={voteCounts.total}
               onVote={handlePostVote}
             />
 
