@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Form, Button, Card, Container, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { getAllTopicTags, createTopic } from '../../services/topics';
 
 function CreateTopic() {
   const [name, setName] = useState('');
@@ -16,7 +16,7 @@ function CreateTopic() {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/topic-tags/');
+        const res = await getAllTopicTags();
         setAvailableCategories(res.data);
       } catch (err) {
         console.error('Could not load tags!', err);
@@ -48,10 +48,7 @@ function CreateTopic() {
     };
 
     try {
-      const response = await axios.post(
-        'http://127.0.0.1:8000/api/topics/',
-        topicData
-      );
+      const response = await createTopic(topicData);
       navigate(`/r/${response.data.slug}`);
     } catch (err) {
       console.error(err);

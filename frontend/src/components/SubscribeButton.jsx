@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from 'react-bootstrap';
-import axios from 'axios';
+import { toggleSubscribe } from '../services/topics';
 
 function SubscribeButton({ topicSlug, initialIsSubscribed }) {
   const [isSubscribed, setIsSubscribed] = useState(initialIsSubscribed);
@@ -9,12 +9,10 @@ function SubscribeButton({ topicSlug, initialIsSubscribed }) {
   const handleToggle = async () => {
     setLoading(true);
     try {
-      const res = await axios.post(
-        `http://127.0.0.1:8000/api/topics/${topicSlug}/subscribe/`
-      );
+      const res = await toggleSubscribe(topicSlug);
       setIsSubscribed(res.data.subscribed);
     } catch (err) {
-      console.error('Hiba a feliratkozásnál', err);
+      console.error('Subscribe error!', err);
     } finally {
       setLoading(false);
     }

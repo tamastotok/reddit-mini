@@ -123,6 +123,7 @@ class PostSerializer(serializers.ModelSerializer):
     votes = VoteSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     tags = PostTagSerializer(many=True)
+    topic_is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -143,6 +144,7 @@ class PostSerializer(serializers.ModelSerializer):
             'comments_count',
             'comments',
             'votes',
+            'topic_is_subscribed',
         ]
 
     def create(self, validated_data):
@@ -190,6 +192,13 @@ class PostSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Tag's name can not be empty!")
                 
         return value
+    
+    def get_topic_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+    
+        return obj.topic.subscribers.filter(id=request.user.id).exists()
 
 
 class TopicTagSerializer(serializers.ModelSerializer):
@@ -205,21 +214,25 @@ class TagCategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'tags']
 
 class TopicSerializer(serializers.ModelSerializer):
-    creator_username = serializers.CharField(source='creator.username', read_only=True)
+    creator = serializers.ReadOnlyField(source='creator.username')
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=TopicTag.objects.all(), required=False)
     posts_count = serializers.IntegerField(source='posts.count', read_only=True)
+    subscribers_count = serializers.IntegerField(source='subscribers.count', read_only=True)
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = Topic
-        fields = ['id', 'name', 'slug', 'description','is_subscribed', 'subscribers_count', 'creator', 'created_at', 'tags', 'posts_count']
+        fields = [
+            'id', 'name', 'slug', 'description', 'is_subscribed', 
+            'subscribers_count', 'creator', 'created_at', 'tags', 'posts_count'
+        ]
         read_only_fields = ['slug', 'creator', 'created_at']
 
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if user and user.is_authenticated:
-            return obj.subscribers.filter(id=user.id).exists()
-        return False        
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.subscribers.filter(id=request.user.id).exists()
+        return False
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

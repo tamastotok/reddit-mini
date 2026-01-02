@@ -2,157 +2,241 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Modal, Badge } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComments } from '@fortawesome/free-solid-svg-icons';
-
-import { searchPosts } from '../utils/searchPosts';
-import VoteButtonGroup from './VoteButtonGroup';
-import EditDeleteButtons from './EditDeleteButtons';
-
+import {
+  faComments,
+  faChevronUp,
+  faChevronDown,
+  faEdit,
+  faTrash,
+  faPlus,
+} from '@fortawesome/free-solid-svg-icons';
 import { deletePost, votePost } from '../services/posts';
+import { toggleSubscribe } from '../services/topics';
 
 const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
   const userId = Number(localStorage.getItem('user_id'));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null);
-
-  // track user vote + vote counts locally
   const [userPostVote, setUserPostVote] = useState(
-    post.votes.find((vote) => vote.user_id === userId)?.value || null
+    post.votes?.find((vote) => vote.user_id === userId)?.value || null
   );
-  const [voteCounts, setVoteCounts] = useState({
-    total: post.total_votes,
-    upvotes: post.upvotes ?? 0,
-    downvotes: post.downvotes ?? 0,
-  });
-
+  const [totalVotes, setTotalVotes] = useState(post.total_votes || 0);
+  const [isSubscribed, setIsSubscribed] = useState(post.topic_is_subscribed);
   const navigate = useNavigate();
 
-  // --- Voting ---
-  const handlePostVote = async (voteType) => {
-    const newVoteType = userPostVote === voteType ? null : voteType;
-
+  const handleVote = async (e, value) => {
+    e.stopPropagation();
+    const newValue = userPostVote === value ? null : value;
     try {
-      const res = await votePost(post.id, newVoteType);
-
-      setUserPostVote(newVoteType);
-
-      // Update local state instead of mutating props
-      if (res.data?.total_votes !== undefined) {
-        setVoteCounts({
-          total: res.data.total_votes,
-          upvotes: res.data.upvotes,
-          downvotes: res.data.downvotes,
-        });
-      }
-
-      // Trigger parent refresh if needed
-      if (onRefreshPost) await onRefreshPost();
-    } catch (error) {
-      console.error('Error voting:', error);
+      const res = await votePost(post.id, newValue);
+      setUserPostVote(newValue);
+      setTotalVotes(res.data.total_votes);
+      if (onRefreshPost) onRefreshPost();
+    } catch (err) {
+      console.error('Voting error', err);
     }
   };
 
-  // --- Tags ---
-  const handleTagClick = (tagName) => {
-    searchPosts(tagName, navigate);
-  };
-
-  // --- Edit ---
-  const handleEditClick = (e) => {
+  const handleJoin = async (e) => {
     e.stopPropagation();
-    navigate(`/post/${post.id}/edit`);
-  };
+    try {
+      await toggleSubscribe(post.topic_slug);
+      setIsSubscribed(true);
+      window.dispatchEvent(new Event('communitiesUpdated'));
 
-  // --- Delete ---
-  const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    setShowDeleteModal(true);
-    setPostToDelete(post);
+      if (onRefreshPost) onRefreshPost();
+    } catch (err) {
+      console.error('Join error', err);
+    }
   };
 
   const handleDeleteConfirm = async () => {
     try {
-      await deletePost(postToDelete.id);
+      await deletePost(post.id);
       setShowDeleteModal(false);
-      setPostToDelete(null);
-      if (onRefreshPost) await onRefreshPost();
+      if (onRefreshPost) onRefreshPost();
     } catch (error) {
       console.error('Error deleting post:', error);
     }
   };
 
-  const handleDeleteCancel = () => {
-    setShowDeleteModal(false);
-    setPostToDelete(null);
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
   return (
     <>
-      <Card key={post.id} className="mb-5">
-        <Card.Body
-          onClick={() => handlePostClick(post.id)}
-          style={{ cursor: 'pointer' }}
-        >
-          <Card.Title>{post.title}</Card.Title>
-          <Card.Text>{post.content}</Card.Text>
-
-          <div className="d-flex flex-wrap">
-            {post.category && (
-              <span className="badge bg-secondary mr-2">{post.category}</span>
-            )}
-          </div>
-        </Card.Body>
-
-        <Card.Footer className="d-flex justify-content-between align-items-center">
-          <div className="d-flex align-items-center">
-            <VoteButtonGroup
-              userVote={userPostVote}
-              totalVotes={voteCounts.total}
-              onVote={handlePostVote}
+      <Card
+        className="mb-3 border-0 shadow-sm post-card-hover"
+        style={{ borderRadius: '8px', overflow: 'hidden' }}
+      >
+        <div className="d-flex">
+          {/* Left Side */}
+          <div
+            className="d-flex flex-column align-items-center p-2 border-end bg-light"
+            style={{ width: '48px' }}
+          >
+            <FontAwesomeIcon
+              icon={faChevronUp}
+              className={`vote-icon ${
+                userPostVote === 1 ? 'text-danger' : 'text-muted'
+              }`}
+              onClick={(e) => handleVote(e, 1)}
+              style={{ cursor: 'pointer', fontSize: '1.3rem' }}
             />
+            <span
+              className={`fw-bold my-1 ${
+                userPostVote === 1
+                  ? 'text-danger'
+                  : userPostVote === -1
+                  ? 'text-primary'
+                  : ''
+              }`}
+            >
+              {totalVotes}
+            </span>
+            <FontAwesomeIcon
+              icon={faChevronDown}
+              className={`vote-icon ${
+                userPostVote === -1 ? 'text-primary' : 'text-muted'
+              }`}
+              onClick={(e) => handleVote(e, -1)}
+              style={{ cursor: 'pointer', fontSize: '1.3rem' }}
+            />
+          </div>
 
-            <div className="d-flex align-items-center ms-4 me-4">
-              <FontAwesomeIcon icon={faComments} className="me-2" />
-              {post.comments_count > 0 ? post.comments_count : 0}
+          {/* Right Side */}
+          <div
+            className="flex-grow-1 p-3"
+            onClick={() => handlePostClick(post.id)}
+            style={{ cursor: 'pointer' }}
+          >
+            {/* Header (r/topic & Join button) */}
+            <div className="d-flex justify-content-between align-items-start mb-1">
+              <div
+                className="d-flex align-items-center"
+                style={{ fontSize: '0.8rem' }}
+              >
+                <span className="fw-bold text-dark me-1">
+                  r/{post.topic_slug || 'all'}
+                </span>
+                <span className="text-muted">
+                  • Posted by u/{post.author_name}
+                </span>
+                <span className="text-muted ms-1">
+                  {formatTime(post.created_at)}
+                </span>
+              </div>
+
+              {/* Join Button: Only if the user is not subscribed and not OP*/}
+              {userId && !isSubscribed && post.topic_slug !== 'all' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="rounded-pill py-0 px-3 fw-bold"
+                  style={{ fontSize: '0.75rem', height: '24px' }}
+                  onClick={handleJoin}
+                >
+                  <FontAwesomeIcon icon={faPlus} className="me-1" />
+                  Join
+                </Button>
+              )}
             </div>
 
-            {post.tags.map((tag, index) => (
-              <Badge
-                key={index}
-                pill
-                bg="secondary"
-                className="d-flex align-items-start me-2"
-                style={{ cursor: 'pointer', height: '1.5rem' }}
-                onClick={() => handleTagClick(tag.name)}
-              >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
+            <Card.Title className="fw-bold mb-2 h5">{post.title}</Card.Title>
 
-          {userId === post.author_id && (
-            <EditDeleteButtons
-              onEdit={handleEditClick}
-              onDelete={handleDeleteClick}
-            />
-          )}
-        </Card.Footer>
+            <Card.Text
+              className="text-secondary mb-3"
+              style={{
+                fontSize: '0.9rem',
+                display: '-webkit-box',
+                WebkitLineClamp: '3',
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {post.content}
+            </Card.Text>
+
+            <div className="d-flex flex-wrap gap-2 mb-3">
+              {post.tags?.map((tag) => (
+                <Badge
+                  key={tag.id}
+                  pill
+                  bg="light"
+                  text="dark"
+                  className="border fw-normal"
+                >
+                  # {tag.name}
+                </Badge>
+              ))}
+            </div>
+
+            <div
+              className="d-flex align-items-center gap-3 text-muted fw-bold"
+              style={{ fontSize: '0.8rem' }}
+            >
+              <div className="bg-hover p-1 px-2 rounded">
+                <FontAwesomeIcon icon={faComments} className="me-2" />
+                {post.comments_count || 0} Comments
+              </div>
+
+              {userId === post.author_id && (
+                <div className="ms-auto d-flex gap-2">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-muted p-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/post/${post.id}/edit`);
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </Button>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-danger p-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteModal(true);
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </Card>
 
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={handleDeleteCancel}>
-        <Modal.Header closeButton>
-          <Modal.Title>Delete Post</Modal.Title>
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title className="h5">Biztosan törlöd?</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <p>Are you sure you want to delete {postToDelete?.title}?</p>
+        <Modal.Body className="text-muted">
+          This action cannot be undone. The post will be permanently deleted.
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleDeleteCancel}>
+        <Modal.Footer className="border-0">
+          <Button
+            variant="light"
+            onClick={() => setShowDeleteModal(false)}
+            className="rounded-pill px-4"
+          >
             Cancel
           </Button>
-          <Button variant="danger" onClick={handleDeleteConfirm}>
-            Confirm Delete
+          <Button
+            variant="danger"
+            onClick={handleDeleteConfirm}
+            className="rounded-pill px-4"
+          >
+            Delete
           </Button>
         </Modal.Footer>
       </Modal>

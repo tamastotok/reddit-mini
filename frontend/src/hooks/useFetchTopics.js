@@ -1,24 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getTopics } from '../services/topics';
 
 const useFetchTopics = () => {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchTopics = useCallback(async () => {
+    try {
+      const res = await getTopics();
+      setTopics(res.data);
+    } catch (error) {
+      console.error('Error fetching topics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchTopics = async () => {
-      try {
-        const res = await getTopics();
-        setTopics(res.data);
-      } catch (error) {
-        console.error('Error fetching topics:', error);
-      } finally {
-        setLoading(false);
-      }
+    fetchTopics();
+
+    const handleUpdate = () => {
+      fetchTopics();
     };
 
-    fetchTopics();
-  }, []);
+    window.addEventListener('communitiesUpdated', handleUpdate);
+
+    return () => {
+      window.removeEventListener('communitiesUpdated', handleUpdate);
+    };
+  }, [fetchTopics]);
 
   return { topics, loading };
 };

@@ -1,7 +1,7 @@
 import { Form, FloatingLabel } from 'react-bootstrap';
 import useFetchTopics from '../../hooks/useFetchTopics';
 
-function TopicSelect({ selectedTopic, setTopic, required }) {
+function TopicSelect({ selectedTopic, setTopic, required, disabled }) {
   const { topics, loading } = useFetchTopics();
 
   return (
@@ -10,7 +10,7 @@ function TopicSelect({ selectedTopic, setTopic, required }) {
         value={selectedTopic || ''}
         onChange={(e) => setTopic(e.target.value)}
         required={required}
-        disabled={loading}
+        disabled={loading || disabled}
       >
         <option value="" disabled>
           Choose a community...
@@ -21,8 +21,10 @@ function TopicSelect({ selectedTopic, setTopic, required }) {
           </option>
         ))}
       </Form.Select>
-      {loading && (
-        <Form.Text className="text-muted">Loading communities...</Form.Text>
+      {disabled && !loading && (
+        <Form.Text className="text-primary fw-bold">
+          Posting directly to this community.
+        </Form.Text>
       )}
     </FloatingLabel>
   );

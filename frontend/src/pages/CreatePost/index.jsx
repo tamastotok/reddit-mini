@@ -1,21 +1,29 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createPost } from '../../services/posts';
 import usePopup from '../../hooks/usePopup';
 import Popup from '../../components/Popup';
 import PostForm from '../../components/Post/PostForm';
 
 function CreatePost() {
+  const popup = usePopup();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const userId = localStorage.getItem('user_id');
+  const preSelectedTopicId = location.state?.selectedTopicId || '';
+
   const [post, setPost] = useState({
     title: '',
     content: '',
-    topic: '',
+    topic: preSelectedTopicId,
     tags: [],
   });
 
-  const popup = usePopup();
-  const navigate = useNavigate();
-  const userId = localStorage.getItem('user_id');
+  useEffect(() => {
+    if (preSelectedTopicId) {
+      setPost((prev) => ({ ...prev, topic: preSelectedTopicId }));
+    }
+  }, [preSelectedTopicId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,6 +70,7 @@ function CreatePost() {
         setPost={setPost}
         onSubmit={handleSubmit}
         submitLabel="Post"
+        isTopicFixed={!!preSelectedTopicId}
       />
     </>
   );

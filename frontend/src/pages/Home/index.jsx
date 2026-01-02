@@ -6,7 +6,6 @@ import PostCard from '../../components/PostCard';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import SortSelect from '../../components/SortSelect';
 import Sidebar from '../../components/SideBar';
-import SubscribeButton from '../../components/SubscribeButton';
 
 function Home() {
   const { slug } = useParams();
@@ -60,13 +59,6 @@ function Home() {
         <Col md={3} className="d-none d-md-block">
           <Sidebar />
         </Col>
-
-        {slug && slug !== 'all' && slug !== 'home' && (
-          <div className="d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded shadow-sm border">
-            <h2 className="mb-0">r/{slug}</h2>
-            <SubscribeButton topicSlug={slug} initialIsSubscribed={false} />
-          </div>
-        )}
 
         <Col md={9} xs={12}>
           <div className="mb-4">

@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import Post from './pages/Post';
 import SessionExpiredPopup from './components/SessionExpiredPopUp';
 import CreateTopic from './pages/CreateTopic';
+import TopicDetail from './pages/TopicDetail';
 
 function RegisterAndLogout() {
   localStorage.clear();
@@ -61,7 +62,7 @@ function App() {
             path="/r/:slug"
             element={
               <ProtectedRoute>
-                <Home />
+                <TopicDetail />
               </ProtectedRoute>
             }
           />

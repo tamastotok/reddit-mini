@@ -3,7 +3,7 @@ import TopicSelect from './TopicSelect';
 import TagSelect from './TagSelect';
 import NavigationButton from '../NavigationButton';
 
-function PostForm({ post, setPost, onSubmit, submitLabel }) {
+function PostForm({ post, setPost, onSubmit, submitLabel, isTopicFixed }) {
   return (
     <Form onSubmit={onSubmit} className="mb-4 px-3">
       <Form.Group controlId="formTitle" className="mb-3">
@@ -33,6 +33,7 @@ function PostForm({ post, setPost, onSubmit, submitLabel }) {
         selectedTopic={post.topic}
         setTopic={(topicId) => setPost({ ...post, topic: topicId })}
         required
+        disabled={isTopicFixed}
       />
 
       <TagSelect
