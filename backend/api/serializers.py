@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from .models import UserProfile, Post, Comment, Vote, Tag
+from .models import TopicTagCategory, UserProfile, Post, Comment, Vote, PostTag, Topic, TopicTag
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.middleware.csrf import get_token
 from django.contrib.auth.hashers import check_password
@@ -67,10 +67,9 @@ class VoteSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     author_username = serializers.CharField(source='author.username', read_only=True)
     author_id = serializers.IntegerField(source='author.id', read_only=True)
-    upvotes = serializers.IntegerField(source='upvotes_count', read_only=True)
-    downvotes = serializers.IntegerField(source='downvotes_count', read_only=True)
-    total_votes = serializers.SerializerMethodField()
-    votes = VoteSerializer(many=True, read_only=True)
+    total_votes = serializers.IntegerField(source='score', read_only=True)
+    user_vote = serializers.SerializerMethodField()
+    replies = serializers.SerializerMethodField()    
     post_title = serializers.CharField(source='post.title', read_only=True)
     post_id = serializers.IntegerField(source='post.id', read_only=True)
 
@@ -85,49 +84,45 @@ class CommentSerializer(serializers.ModelSerializer):
             'content',
             'created_at',
             'updated_at',
-            'upvotes',
-            'downvotes',
+            'parent',
             'total_votes',
-            'votes',
-        ]
-        read_only_fields = [
-            'post_id',
-            'created_at',
-            'updated_at',
-            'upvotes',
-            'downvotes',
-            'total_votes',
+            'user_vote',
+            'replies',
         ]
 
-    def get_total_votes(self, obj):
-        return (getattr(obj, 'upvotes_count', 0) -
-                getattr(obj, 'downvotes_count', 0))
+    def get_user_vote(self, obj):
+        user = self.context.get('request').user
+        if user and user.is_authenticated:
+            vote = obj.votes.filter(user=user).first()
+            return vote.value if vote else 0
+        return 0
+
+    def get_replies(self, obj):
+        if obj.replies.exists():
+            return CommentSerializer(obj.replies.all(), many=True, context=self.context).data
+        return []
 
 
 
-class TagSerializer(serializers.ModelSerializer):
+class PostTagSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=16, error_messages={"max_length": "Tag must be 16 characters or less."})
 
     class Meta:
-        model = Tag
+        model = PostTag
         fields = ['id', 'name']
 
 
 class PostSerializer(serializers.ModelSerializer):
     author_id = serializers.IntegerField(source='author.id', read_only=True)
     author_username = serializers.CharField(source='author.username', read_only=True)
-
-    # Use annotated fields directly
-    upvotes = serializers.IntegerField(source='upvotes_count', read_only=True)
-    downvotes = serializers.IntegerField(source='downvotes_count', read_only=True)
-    total_votes = serializers.SerializerMethodField()
-    comments_count = serializers.IntegerField(source='comment_count', read_only=True)
-
+    topic_name = serializers.CharField(source='topic.name', read_only=True)
+    topic_slug = serializers.CharField(source='topic.slug', read_only=True)
+    total_votes = serializers.IntegerField(source='score', read_only=True)
+    user_vote = serializers.SerializerMethodField()
+    comments_count = serializers.IntegerField(source='comments.count', read_only=True)
     votes = VoteSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
-    category = serializers.ChoiceField(choices=Post.Category.choices, required=False)
-    category_label = serializers.CharField(source='get_category_display', read_only=True)
-    tags = TagSerializer(many=True)
+    tags = PostTagSerializer(many=True)
 
     class Meta:
         model = Post
@@ -139,25 +134,15 @@ class PostSerializer(serializers.ModelSerializer):
             'content',
             'created_at',
             'updated_at',
-            'category',
-            'category_label',
+            'topic',
+            'topic_name',
+            'topic_slug',
             'tags',
-            'upvotes',
-            'downvotes',
             'total_votes',
+            'user_vote',
             'comments_count',
+            'comments',
             'votes',
-            'comments',
-        ]
-        read_only_fields = [
-            'created_at',
-            'updated_at',
-            'upvotes',
-            'downvotes',
-            'total_votes',
-            'comments_count',
-            'comments',
-            'category_label',
         ]
 
     def create(self, validated_data):
@@ -166,7 +151,7 @@ class PostSerializer(serializers.ModelSerializer):
 
         for tag_data in tags_data:
             tag_name = tag_data['name'].strip().lower()
-            tag, _ = Tag.objects.get_or_create(name=tag_name)
+            tag, _ = PostTag.objects.get_or_create(name=tag_name)
             post.tags.add(tag)
 
         return post
@@ -181,15 +166,60 @@ class PostSerializer(serializers.ModelSerializer):
         if tags_data is not None:
             instance.tags.clear()
             for tag_data in tags_data:
-                tag, _ = Tag.objects.get_or_create(name=tag_data['name'])
+                tag, _ = PostTag.objects.get_or_create(name=tag_data['name'])
                 instance.tags.add(tag)
 
         return instance
     
-    def get_total_votes(self, obj):
-        # Safe calculation from annotated values
-        return (getattr(obj, 'upvotes_count', 0) -
-                getattr(obj, 'downvotes_count', 0))
+    def get_comments_count(self, obj):
+        return obj.comments.count()
+
+    def get_user_vote(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            vote = obj.votes.filter(user=user).first()
+            return vote.value if vote else 0
+        return 0
+    
+    def validate_tags(self, value):
+        if len(value) > 3:
+            raise serializers.ValidationError("You can add up to 3 tags to a post!")
+        
+        for tag_data in value:
+            if not tag_data.get('name') or len(tag_data['name'].strip()) == 0:
+                raise serializers.ValidationError("Tag's name can not be empty!")
+                
+        return value
+
+
+class TopicTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TopicTag
+        fields = ['id', 'name']
+
+class TagCategorySerializer(serializers.ModelSerializer):
+    tags = TopicTagSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = TopicTagCategory
+        fields = ['id', 'name', 'tags']
+
+class TopicSerializer(serializers.ModelSerializer):
+    creator_username = serializers.CharField(source='creator.username', read_only=True)
+    tags = serializers.PrimaryKeyRelatedField(many=True, queryset=TopicTag.objects.all(), required=False)
+    posts_count = serializers.IntegerField(source='posts.count', read_only=True)
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Topic
+        fields = ['id', 'name', 'slug', 'description','is_subscribed', 'subscribers_count', 'creator', 'created_at', 'tags', 'posts_count']
+        read_only_fields = ['slug', 'creator', 'created_at']
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if user and user.is_authenticated:
+            return obj.subscribers.filter(id=user.id).exists()
+        return False        
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

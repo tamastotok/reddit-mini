@@ -8,14 +8,18 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils import timezone
+from datetime import timedelta
 from django.contrib.auth.models import User
-from django.db.models import Count, Prefetch, Case, When, IntegerField, Q
+from django.db.models import Count, Prefetch, Q
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.http import Http404, JsonResponse
-from django.contrib.contenttypes.models import ContentType
-from .models import Post, Comment, Vote, UserProfile
+from .models import Post, Comment, TopicTag, TopicTagCategory,  UserProfile, Topic
 from .serializers import (
+    TagCategorySerializer,
+    TopicTagSerializer,
     UserSerializer,
     PostSerializer,
     CommentSerializer,
@@ -23,7 +27,9 @@ from .serializers import (
     CustomTokenSerializer,
     UserProfileSerializer,
     ChangePasswordSerializer,
+    TopicSerializer,
 )
+from .utils.voting import toggle_vote
 
 def csrf_token_view(request):
     csrf_token = get_token(request)
@@ -113,59 +119,35 @@ class UserActivityView(APIView):
 
 class PostListView(APIView):
     def get(self, request):
-        category = request.query_params.get('category')
-        sort = request.query_params.get('sort', 'date')  # default sort = date
+        topic_slug = request.query_params.get('topic') # 'all', 'home' or slug
+        sort = request.query_params.get('sort', 'new') # hot, new, top
+        timeframe = request.query_params.get('timeframe', 'all') # today, week, month
+        posts = Post.objects.select_related('author', 'topic').prefetch_related('votes')
+       
+        if topic_slug == 'home' and request.user.is_authenticated:        
+            subscribed_topic_ids = request.user.subscriptions.values_list('id', flat=True)
+            posts = posts.filter(topic__id__in=subscribed_topic_ids)
+        elif topic_slug and topic_slug != 'all' and topic_slug != 'home':
+            posts = posts.filter(topic__slug=topic_slug)
 
-        # Base queryset: annotate post-level counts
-        posts = Post.objects.annotate(
-            upvotes_count=Count(
-                Case(When(votes__value=1, then=1), output_field=IntegerField())
-            ),
-            downvotes_count=Count(
-                Case(When(votes__value=-1, then=1), output_field=IntegerField())
-            ),
-            comment_count=Count('comments')
-        ).prefetch_related(
-            # Prefetch comments with their own annotations
-            Prefetch(
-                'comments',
-                queryset=Comment.objects.annotate(
-                    upvotes_count=Count(
-                        Case(When(votes__value=1, then=1), output_field=IntegerField())
-                    ),
-                    downvotes_count=Count(
-                        Case(When(votes__value=-1, then=1), output_field=IntegerField())
-                    )
-                ),
-            ),
-            'votes'
-        )
+        now = timezone.now()
+        if sort in ['hot', 'top']:
+            if timeframe == 'today':
+                posts = posts.filter(created_at__gte=now - timedelta(days=1))
+            elif timeframe == 'week':
+                posts = posts.filter(created_at__gte=now - timedelta(weeks=1))
+            elif timeframe == 'month':
+                posts = posts.filter(created_at__gte=now - timedelta(days=30))
 
-        # Category filter
-        if category:
-            posts = posts.filter(category=category)
-
-        # Sorting
-        if sort == 'upvotes':
-            posts = posts.order_by('-upvotes_count')
-        elif sort == 'comments':
-            posts = posts.order_by('-comment_count')
-        else:  # newest first
+        if sort == 'hot':
+            posts = posts.filter(created_at__gte=now - timedelta(days=1)).order_by('-score', '-created_at')
+        elif sort == 'top':
+            posts = posts.order_by('-score', '-created_at')
+        else:
             posts = posts.order_by('-created_at')
 
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class PostCategoriesView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        categories=[
-            {'value':key, 'label':label}
-            for key, label in Post.Category.choices
-        ]
-        return Response(categories)
+        serializer = PostSerializer(posts, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
 class PostCreateView(generics.ListCreateAPIView):
@@ -178,27 +160,13 @@ class PostCreateView(generics.ListCreateAPIView):
 
 
 class PostDetailView(generics.RetrieveAPIView):
-    queryset = Post.objects.annotate(
-        upvotes_count=Count(
-            Case(When(votes__value=1, then=1), output_field=IntegerField())
-        ),
-        downvotes_count=Count(
-            Case(When(votes__value=-1, then=1), output_field=IntegerField())
-        ),
-        comment_count=Count('comments')
-    ).prefetch_related(
+    queryset = Post.objects.select_related('author').prefetch_related(
+        'tags',
+        'votes',
         Prefetch(
             'comments',
-            queryset=Comment.objects.annotate(
-                upvotes_count=Count(
-                    Case(When(votes__value=1, then=1), output_field=IntegerField())
-                ),
-                downvotes_count=Count(
-                    Case(When(votes__value=-1, then=1), output_field=IntegerField())
-                )
-            ),
-        ),
-        'votes'
+            queryset=Comment.objects.select_related('author').prefetch_related('votes')
+        )
     )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -211,83 +179,30 @@ class PostDetailView(generics.RetrieveAPIView):
 
 class PostVoteView(generics.GenericAPIView):
     def post(self, request, post_id):
-        vote_type = request.data.get('vote_type')
+        post = get_object_or_404(Post, id=post_id)
+        vote_type = request.data.get("vote_type")
 
         if vote_type not in [1, -1, None]:
             return Response(
-                {
-                    "error": "Invalid vote type. Must be 1 (upvote), -1 (downvote), or null for removal."
-                },
+                {"error": "Invalid vote type. Must be 1, -1, or null."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        content_type = ContentType.objects.get_for_model(Post)
-
-        try:
-            vote = Vote.objects.get(
-                user=request.user, content_type=content_type, object_id=post_id
-            )
-            if vote_type is None:
-                vote.delete()
-            else:
-                if vote.value != vote_type:
-                    vote.value = vote_type
-                    vote.save()
-                else:
-                    vote.delete()
-        except Vote.DoesNotExist:
-            if vote_type is not None:
-                Vote.objects.create(
-                    user=request.user,
-                    content_type=content_type,
-                    object_id=post_id,
-                    value=vote_type,
-                )
-
-        # Calculate votes
-        upvotes = Vote.objects.filter(
-            content_type=content_type, object_id=post_id, value=1
-        ).count()
-        downvotes = Vote.objects.filter(
-            content_type=content_type, object_id=post_id, value=-1
-        ).count()
-        total_votes = upvotes - downvotes
-
-        return Response(
-            {
-                "message": "Vote toggled successfully.",
-                "upvotes": upvotes,
-                "downvotes": downvotes,
-                "total_votes": total_votes,
-            },
-            status=status.HTTP_200_OK,
-        )
+        result = toggle_vote(request.user, post, vote_type)
+        return Response({"message": "Vote toggled successfully.", **result})
 
 
 
 class GetComments(generics.RetrieveAPIView):
-    queryset = Post.objects.annotate(
-        # annotate post-level vote and comment counts
-        upvotes_count=Count(
-            Case(When(votes__value=1, then=1), output_field=IntegerField())
-        ),
-        downvotes_count=Count(
-            Case(When(votes__value=-1, then=1), output_field=IntegerField())
-        ),
-        comment_count=Count('comments')
-    ).prefetch_related(
+    queryset = Post.objects.select_related('author').prefetch_related(
+        'tags',
+        'votes',
         Prefetch(
             'comments',
-            queryset=Comment.objects.annotate(
-                upvotes_count=Count(
-                    Case(When(votes__value=1, then=1), output_field=IntegerField())
-                ),
-                downvotes_count=Count(
-                    Case(When(votes__value=-1, then=1), output_field=IntegerField())
-                )
-            ),
-        ),
-        'votes',
+            queryset=Comment.objects.filter(parent=None)
+                                    .select_related('author')
+                                    .prefetch_related('votes')
+        )
     )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -299,74 +214,36 @@ class CommentCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         post = get_object_or_404(Post, id=self.kwargs['post_id'])
-        serializer.save(author=self.request.user, post=post)
+        parent_id = self.request.data.get('parent')
+        parent = get_object_or_404(Comment, id=parent_id) if parent_id else None
+        
+        serializer.save(author=self.request.user, post=post, parent=parent)
 
 
 class CommentVoteView(generics.GenericAPIView):
-    def post(self, request, post_id, comment_id):
-        vote_type = request.data.get('vote_type')
+    def post(self, request, comment_id):
+        comment = get_object_or_404(Comment, id=comment_id)
+        vote_type = request.data.get("vote_type")
 
         if vote_type not in [1, -1, None]:
             return Response(
-                {
-                    "error": "Invalid vote type. Must be 1 (upvote), -1 (downvote), or null for removal."
-                },
+                {"error": "Invalid vote type. Must be 1, -1, or null."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        post = get_object_or_404(Post, id=post_id)
-        comment = get_object_or_404(post.comments.all(), id=comment_id)
-        content_type = ContentType.objects.get_for_model(Comment)
+        result = toggle_vote(request.user, comment, vote_type)
+        return Response({"message": "Vote toggled successfully.", **result})
 
-        try:
-            vote = Vote.objects.get(
-                user=request.user, content_type=content_type, object_id=comment_id
-            )
-            if vote_type is None:
-                vote.delete()  
-            else:
-                if vote.value != vote_type:
-                    vote.value = vote_type
-                    vote.save()
-                else:
-                    vote.delete()  
-        except Vote.DoesNotExist:
-            if vote_type is not None:
-                Vote.objects.create(
-                    user=request.user,
-                    content_type=content_type,
-                    object_id=comment_id,
-                    value=vote_type,
-                )
-
-        return Response(
-            {
-                "message": "Vote toggled successfully.",
-                "upvotes": comment.upvotes,
-                "downvotes": comment.downvotes,
-                "total_votes": comment.total_votes,
-            },
-            status=status.HTTP_200_OK,
-        )
 
 
 class RefreshComment(generics.RetrieveAPIView):
-    queryset = Comment.objects.annotate(
-        upvotes_count=Count(
-            Case(When(votes__value=1, then=1), output_field=IntegerField())
-        ),
-        downvotes_count=Count(
-            Case(When(votes__value=-1, then=1), output_field=IntegerField())
-        )
-    ).prefetch_related(
-        'votes'
-    )
+    queryset = Comment.objects.select_related('author').prefetch_related('votes', 'replies')
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request, *args, **kwargs):
         comment = self.get_object()
-        serializer = self.get_serializer(comment)
+        serializer = self.get_serializer(comment, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -375,48 +252,28 @@ class CommentUpdateView(generics.UpdateAPIView):
     serializer_class = CommentSerializer
 
     def get_object(self):
-        post_id = self.kwargs.get('post_id')
         comment_id = self.kwargs.get('comment_id')
-        comment = get_object_or_404(Comment, id=comment_id, post__id=post_id)
+        comment = get_object_or_404(Comment, id=comment_id)
 
-        # Check if the request user is the OG author
         if comment.author != self.request.user:
-            self.permission_denied(
-                self.request, message="You do not have permission to edit this comment."
-            )
+            self.permission_denied(self.request, message="You cannot edit this comment.")
         return comment
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CommentDeleteView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        post_id = self.kwargs.get('post_id')
         comment_id = self.kwargs.get('comment_id')
-        return get_object_or_404(Comment, id=comment_id, post__id=post_id)
+        return get_object_or_404(Comment, id=comment_id)
 
     def delete(self, request, *args, **kwargs):
         instance = self.get_object()
-        # Aadded for extra safety
         if instance.author != request.user:
-            return Response(
-                {"detail": "You do not have permission to delete this comment."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        
         self.perform_destroy(instance)
-        return Response(
-            {"message": "Comment deleted successfully."},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response({"message": "Deleted"}, status=status.HTTP_204_NO_CONTENT)
 
 
 class PostDeleteView(generics.DestroyAPIView):
@@ -503,7 +360,6 @@ class PostSearchView(generics.ListAPIView):
             Q(title__icontains=query)
             | Q(author__username__iexact=query)
             | Q(content__icontains=query)
-            | Q(category__icontains=query)
             | Q(tags__name__iexact=query)
         )
 
@@ -517,3 +373,62 @@ class PostSearchView(generics.ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class TopicListView(generics.ListCreateAPIView):
+    queryset = Topic.objects.all().order_by('name')
+    serializer_class = TopicSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)
+
+class TopicDetailView(generics.RetrieveAPIView):
+    queryset = Topic.objects.all()
+    serializer_class = TopicSerializer
+    lookup_field = 'slug'
+
+class TopicPostListView(generics.ListAPIView):
+    serializer_class = PostSerializer
+
+    def get_queryset(self):
+        topic_slug = self.kwargs['slug']
+        return Post.objects.filter(topic__slug=topic_slug).order_by('-created_at')
+
+
+class TopicTagListView(generics.ListAPIView):
+    queryset = TopicTagCategory.objects.prefetch_related('tags').all()
+    serializer_class = TagCategorySerializer
+    permission_classes = []
+
+class SubscribeToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        topic = get_object_or_404(Topic, slug=slug)
+        user = request.user
+        
+        if user in topic.subscribers.all():
+            topic.subscribers.remove(user)
+            subscribed = False
+        else:
+            topic.subscribers.add(user)
+            subscribed = True
+            
+        return Response({
+            "subscribed": subscribed,
+            "subscribers_count": topic.subscribers.count()
+        })
+    
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)

@@ -6,6 +6,7 @@ from api.views import (
     EditUserView,
     ChangeUserPassword,
     CustomTokenView,
+    LogoutView,
     csrf_token_view,
 )
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -24,5 +25,6 @@ urlpatterns = [
     path('api/csrf-token/', csrf_token_view, name='csrf-token'),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("api-auth/", include("rest_framework.urls")),
+    path('api/logout/', LogoutView.as_view(), name='logout'),
     path("api/", include("api.urls")),
 ]
