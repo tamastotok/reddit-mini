@@ -9,17 +9,17 @@ from rest_framework.permissions import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Prefetch, Q
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.http import Http404, JsonResponse
-from .models import Post, Comment, TopicTag, TopicTagCategory,  UserProfile, Topic
+from .models import Post, Comment, TopicTagCategory,  UserProfile, Topic
 from .serializers import (
     TagCategorySerializer,
-    TopicTagSerializer,
     UserSerializer,
     PostSerializer,
     CommentSerializer,
@@ -30,6 +30,7 @@ from .serializers import (
     TopicSerializer,
 )
 from .utils.voting import toggle_vote
+
 
 def csrf_token_view(request):
     csrf_token = get_token(request)
@@ -106,8 +107,8 @@ class UserActivityView(APIView):
             .order_by('-created_at')
         ) 
 
-        post_serializer = PostSerializer(posts, many=True)
-        comment_serializer = CommentSerializer(comments, many=True)
+        post_serializer = PostSerializer(posts, many=True, context={'request': request})
+        comment_serializer = CommentSerializer(comments, many=True, context={'request': request})
 
         return Response(
             {
@@ -116,38 +117,49 @@ class UserActivityView(APIView):
             }
         )
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
-class PostListView(APIView):
-    def get(self, request):
-        topic_slug = request.query_params.get('topic') # 'all', 'home' or slug
-        sort = request.query_params.get('sort', 'new') # hot, new, top
-        timeframe = request.query_params.get('timeframe', 'all') # today, week, month
-        posts = Post.objects.select_related('author', 'topic').prefetch_related('votes')
-       
-        if topic_slug == 'home' and request.user.is_authenticated:        
-            subscribed_topic_ids = request.user.subscriptions.values_list('id', flat=True)
-            posts = posts.filter(topic__id__in=subscribed_topic_ids)
-        elif topic_slug and topic_slug != 'all' and topic_slug != 'home':
-            posts = posts.filter(topic__slug=topic_slug)
+
+class PostListView(generics.ListAPIView):
+    serializer_class = PostSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):        
+        queryset = Post.objects.select_related('author', 'topic').prefetch_related('votes', 'tags')
+        topic_slug = self.request.query_params.get('topic', 'all')
+        sort = self.request.query_params.get('sort', 'new')
+        timeframe = self.request.query_params.get('timeframe', 'all')
+        user = self.request.user
+        
+        if topic_slug == 'home':
+            if user.is_authenticated:
+                subscribed_topic_ids = user.subscriptions.values_list('id', flat=True)
+                queryset = queryset.filter(topic__id__in=subscribed_topic_ids)
+            else:        
+                return Post.objects.none()
+        elif topic_slug and topic_slug != 'all':        
+            queryset = queryset.filter(topic__slug=topic_slug)
 
         now = timezone.now()
-        if sort in ['hot', 'top']:
+        if sort in ['hot', 'top'] and timeframe != 'all':
             if timeframe == 'today':
-                posts = posts.filter(created_at__gte=now - timedelta(days=1))
+                queryset = queryset.filter(created_at__gte=now - timedelta(days=1))
             elif timeframe == 'week':
-                posts = posts.filter(created_at__gte=now - timedelta(weeks=1))
+                queryset = queryset.filter(created_at__gte=now - timedelta(weeks=1))
             elif timeframe == 'month':
-                posts = posts.filter(created_at__gte=now - timedelta(days=30))
-
-        if sort == 'hot':
-            posts = posts.filter(created_at__gte=now - timedelta(days=1)).order_by('-score', '-created_at')
+                queryset = queryset.filter(created_at__gte=now - timedelta(days=30))
+       
+        if sort == 'hot':        
+            queryset = queryset.order_by('-score', '-created_at')
         elif sort == 'top':
-            posts = posts.order_by('-score', '-created_at')
+            queryset = queryset.order_by('-score', '-created_at')
         else:
-            posts = posts.order_by('-created_at')
+            queryset = queryset.order_by('-created_at')
 
-        serializer = PostSerializer(posts, many=True, context={'request': request})
-        return Response(serializer.data)
+        return queryset
 
 
 class PostCreateView(generics.ListCreateAPIView):

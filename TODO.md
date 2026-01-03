@@ -65,7 +65,6 @@
 [ ] Change text inputs to floating labels <br>
 [ ] CommentItem.jsx line 59: make an onClick function (refactor) <br>
 [ ] Clicking on the logo doesn't refresh the front page <br>
-[ ] Fix pytest null value errors <br>
 [ ] Session expired popup bug (login -> popup -> logout the user and redirect to login) <br>
 [✓] Tag names should have rules (max size, etc.) and needs ux refactor <br>
 [✓] At CreatePost change PostForm.jsx to Popup.jsx <br>
@@ -83,6 +82,7 @@
 
 ## Planned features
 
-- Dark mode
+- Image upload system
 - Role system
 - Report system
+- Dark mode

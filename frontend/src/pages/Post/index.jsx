@@ -101,6 +101,7 @@ function Post() {
       console.error('Error submitting comment:', error);
     }
   };
+
   const handleUpdateComment = async (commentId, content) => {
     try {
       const res = await updateComment(commentId, { content });
@@ -182,7 +183,7 @@ function Post() {
             <Button
               className="rounded-pill"
               variant="primary"
-              onClick={handleCreateComment}
+              onClick={() => handleCreateComment()}
             >
               Comment
             </Button>

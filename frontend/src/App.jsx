@@ -8,7 +8,7 @@ import Home from './pages/Home';
 import CreatePost from './pages/CreatePost';
 import SearchPost from './pages/SearchPost';
 import EditPost from './pages/EditPost';
-import UserProfile from './pages/User';
+import UserProfile from './pages/UserProfile';
 import Settings from './pages/Settings';
 import Post from './pages/Post';
 import SessionExpiredPopup from './components/SessionExpiredPopUp';
@@ -52,6 +52,14 @@ function App() {
         <Routes>
           <Route
             path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/r/all"
             element={
               <ProtectedRoute>
                 <Home />

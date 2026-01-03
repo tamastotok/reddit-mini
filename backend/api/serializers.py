@@ -177,9 +177,9 @@ class PostSerializer(serializers.ModelSerializer):
         return obj.comments.count()
 
     def get_user_vote(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            vote = obj.votes.filter(user=user).first()
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            vote = obj.votes.filter(user=request.user).first()
             return vote.value if vote else 0
         return 0
     
