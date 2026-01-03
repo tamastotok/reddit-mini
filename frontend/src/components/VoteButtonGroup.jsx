@@ -5,14 +5,14 @@ import { formatNumbers } from '../utils/formatNumbers';
 
 function VoteButtonGroup({ userVote, totalVotes, onVote }) {
   const getBorderColor = () => {
-    if (userVote === 1) return 'border-danger';
-    if (userVote === -1) return 'border-primary';
+    if (userVote === 1) return 'border-primary';
+    if (userVote === -1) return 'border-danger';
     return 'border-secondary';
   };
 
   const getArrowColor = (direction) => {
     if (userVote === direction) {
-      return direction === 1 ? 'text-danger' : 'text-primary';
+      return direction === 1 ? 'text-primary' : 'text-danger';
     }
     return 'text-secondary';
   };

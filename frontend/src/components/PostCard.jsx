@@ -79,7 +79,7 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
             <FontAwesomeIcon
               icon={faChevronUp}
               className={`vote-icon ${
-                userPostVote === 1 ? 'text-danger' : 'text-muted'
+                userPostVote === 1 ? 'text-primary' : 'text-muted'
               }`}
               onClick={(e) => handleVote(e, 1)}
               style={{ cursor: 'pointer', fontSize: '1.3rem' }}
@@ -87,9 +87,9 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
             <span
               className={`fw-bold my-1 ${
                 userPostVote === 1
-                  ? 'text-danger'
-                  : userPostVote === -1
                   ? 'text-primary'
+                  : userPostVote === -1
+                  ? 'text-danger'
                   : ''
               }`}
             >
@@ -98,7 +98,7 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
             <FontAwesomeIcon
               icon={faChevronDown}
               className={`vote-icon ${
-                userPostVote === -1 ? 'text-primary' : 'text-muted'
+                userPostVote === -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={(e) => handleVote(e, -1)}
               style={{ cursor: 'pointer', fontSize: '1.3rem' }}
@@ -117,7 +117,13 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
                 className="d-flex align-items-center"
                 style={{ fontSize: '0.8rem' }}
               >
-                <span className="fw-bold text-dark me-1">
+                <span
+                  className="fw-bold text-dark me-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/r/${post.topic_slug}`);
+                  }}
+                >
                   r/{post.topic_slug || 'all'}
                 </span>
                 <span className="text-muted">
@@ -218,7 +224,9 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
         centered
       >
         <Modal.Header closeButton className="border-0">
-          <Modal.Title className="h5">Biztosan törlöd?</Modal.Title>
+          <Modal.Title className="h5">
+            Are you sure you want to delete?
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-muted">
           This action cannot be undone. The post will be permanently deleted.
