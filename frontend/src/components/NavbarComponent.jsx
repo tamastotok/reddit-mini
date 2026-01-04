@@ -8,16 +8,17 @@ import {
 } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
-import { useState, useEffect } from 'react';
+import { useContext } from 'react';
 import { logoutUser } from '../utils/logoutUser';
+import { UserContext } from '../context/UserContext';
 
 function NavbarComponent() {
-  const [username, setUsername] = useState(null);
+  const { user } = useContext(UserContext);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await logoutUser(); // handles API + localStorage cleanup
+      await logoutUser();
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -28,14 +29,7 @@ function NavbarComponent() {
     navigate('/post/create');
   };
 
-  useEffect(() => {
-    const storedUsername = localStorage.getItem('username');
-    if (storedUsername) {
-      setUsername(storedUsername);
-    }
-  }, []);
-
-  const profileImage = '../src/assets/cat_profile.png';
+  const defaultImage = '/src/assets/cat_profile.png';
 
   return (
     <Navbar bg="light" expand="lg" className="mb-4 shadow-sm">
@@ -59,16 +53,21 @@ function NavbarComponent() {
             <NavDropdown
               title={
                 <Image
-                  src={profileImage}
+                  src={user?.avatar || defaultImage}
                   roundedCircle
-                  style={{ width: '40px', height: '40px' }}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    objectFit: 'cover',
+                    border: '1px solid #8b8a8aff',
+                  }}
                   alt="Profile"
                 />
               }
               id="basic-nav-dropdown"
               align="end"
             >
-              <NavDropdown.Item as={Link} to={`/user/${username}`}>
+              <NavDropdown.Item as={Link} to={`/user/${user?.username}`}>
                 Profile
               </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/settings">

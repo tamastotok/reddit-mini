@@ -16,8 +16,8 @@ from django.contrib.auth.models import User
 from django.db.models import Prefetch, Q
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
-from django.http import Http404, JsonResponse
-from .models import Post, Comment, TopicTagCategory,  UserProfile, Topic
+from django.http import JsonResponse
+from .models import Post, Comment, TopicTagCategory, Topic
 from .serializers import (
     TagCategorySerializer,
     UserSerializer,
@@ -25,7 +25,6 @@ from .serializers import (
     CommentSerializer,
     RegisterSerializer,
     CustomTokenSerializer,
-    UserProfileSerializer,
     ChangePasswordSerializer,
     TopicSerializer,
 )
@@ -46,31 +45,13 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
-    def perform_create(self, serializer):
-        user = serializer.save()
-        UserProfile.objects.create(user=user)
-
 
 class EditUserView(generics.UpdateAPIView):
-    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'pk'
 
     def get_object(self):
-        # Ensure the user is only updating their own profile
         return self.request.user
-
-    def perform_update(self, serializer):
-        user = serializer.save()
-        user_profile, created = UserProfile.objects.get_or_create(user=user)
-        # UserProfile update
-        user_profile.bio = self.request.data.get('bio', user_profile.bio)
-        user_profile.profile_picture = self.request.data.get(
-            'profile_picture', user_profile.profile_picture
-        )
-        user_profile.save()
-        return user  
 
 
 class DeleteUserView(generics.DestroyAPIView):
@@ -329,15 +310,9 @@ class PostUpdateView(generics.UpdateAPIView):
 
 
 class UserProfileView(generics.RetrieveAPIView):
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
-    lookup_field = 'pk'
-
-    def get_object(self):
-        try:
-            return super().get_object()
-        except Http404:
-            raise NotFound("This user does not have a profile.")
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    lookup_field = 'pk' # vagy 'username'
 
 
 class ChangeUserPassword(generics.UpdateAPIView):

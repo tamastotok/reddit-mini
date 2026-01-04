@@ -6,9 +6,9 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bio = models.TextField(blank=True, null=True)
-    profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    bio = models.TextField(max_length=500, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.png', blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s profile"

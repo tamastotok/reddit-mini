@@ -1,6 +1,7 @@
-import { Card, Image, Button, Form } from 'react-bootstrap';
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { Card, Image, Button, Form, Stack } from 'react-bootstrap';
 import { updateUserProfile } from '../../services/user';
+import { UserContext } from '../../context/UserContext';
 
 function ProfileCard({
   userData,
@@ -10,31 +11,48 @@ function ProfileCard({
   setShowModal,
   setShowPasswordModal,
 }) {
+  const { refreshUser } = useContext(UserContext);
   const [editedData, setEditedData] = useState({
     username: userData.username,
-    bio: userData.bio,
-    profile_picture: userData.profile_picture,
+    bio: userData.profile?.bio || '',
+    avatar: null,
   });
+
+  useEffect(() => {
+    setEditedData({
+      username: userData.username,
+      bio: userData.profile?.bio || '',
+      avatar: null,
+    });
+  }, [userData]);
 
   const handleEditToggle = () => setIsEditing((prev) => !prev);
   const handleCancel = () => setIsEditing(false);
 
   const handleSave = async () => {
     const formData = new FormData();
-    formData.append('username', editedData.username);
-    formData.append('bio', editedData.bio);
-    if (editedData.profile_picture) {
-      formData.append('profile_picture', editedData.profile_picture);
+    formData.append('first_name', userData.first_name || '');
+    formData.append('profile.bio', editedData.bio);
+
+    if (editedData.avatar instanceof File) {
+      formData.append('profile.avatar', editedData.avatar);
     }
 
     try {
-      const res = await updateUserProfile(userData.id, formData);
-      fetchProfile();
-      setEditedData(res.data);
+      await updateUserProfile(userData.id, formData);
+      await fetchProfile();
+      await refreshUser();
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update profile:', error);
     }
+  };
+
+  const getAvatarSrc = () => {
+    if (editedData.avatar instanceof File) {
+      return URL.createObjectURL(editedData.avatar);
+    }
+    return userData.profile?.avatar || '/src/assets/cat_profile.png';
   };
 
   const handleInputChange = (e) => {
@@ -45,64 +63,132 @@ function ProfileCard({
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setEditedData((prev) => ({ ...prev, profile_picture: file }));
+      setEditedData((prev) => ({ ...prev, avatar: file }));
     }
   };
 
   return (
-    <Card className="shadow-sm">
-      <Card.Body className="text-center">
-        <Image
-          src={editedData.profile_picture || '../src/assets/cat_profile.png'}
-          roundedCircle
-          fluid
-          style={{ width: '150px', height: '150px' }}
-          className="mb-3"
-        />
-        {isEditing ? (
-          <>
-            <Form.Control
-              type="text"
-              name="username"
-              value={editedData.username}
-              onChange={handleInputChange}
-            />
-            <Form.Control
-              as="textarea"
-              name="bio"
-              value={editedData.bio}
-              onChange={handleInputChange}
-              rows={3}
-            />
-            <Form.Control
-              type="file"
-              name="profile_picture"
-              onChange={handleImageChange}
-            />
-            <Button variant="success" onClick={handleSave}>
-              Save
-            </Button>
-            <Button variant="secondary" onClick={handleCancel}>
-              Cancel
-            </Button>
-          </>
-        ) : (
-          <>
-            <Card.Title>{userData.username}</Card.Title>
-            <Card.Text>{userData.bio || 'No bio available'}</Card.Text>
-            <Button variant="primary" onClick={handleEditToggle}>
-              Edit
-            </Button>
-            <Button variant="danger" onClick={() => setShowModal(true)}>
-              Delete
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setShowPasswordModal(true)}
+    <Card className="shadow-sm border-0 rounded-4 overflow-hidden">
+      <div className="bg-primary" style={{ height: '80px' }}></div>
+      <Card.Body className="text-center pt-0" style={{ marginTop: '-75px' }}>
+        <div className="position-relative d-inline-block mb-3">
+          <Image
+            src={getAvatarSrc()}
+            roundedCircle
+            className="border border-4 border-white shadow-sm bg-white"
+            style={{ width: '150px', height: '150px', objectFit: 'cover' }}
+          />
+          {isEditing && (
+            <Form.Label
+              htmlFor="avatar-upload"
+              className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow"
+              style={{
+                width: '40px',
+                height: '40px',
+                cursor: 'pointer',
+                border: '3px solid white',
+              }}
             >
-              Change Password
-            </Button>
-          </>
+              <i className="bi bi-camera-fill"></i>
+              <Form.Control
+                id="avatar-upload"
+                type="file"
+                className="d-none"
+                onChange={handleImageChange}
+                accept="image/*"
+              />
+            </Form.Label>
+          )}
+        </div>
+
+        {isEditing ? (
+          <Form className="text-start px-3">
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-bold text-muted">
+                Username (Read-only)
+              </Form.Label>
+              <Form.Control
+                type="text"
+                value={editedData.username}
+                disabled
+                className="bg-light border-0"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label className="small fw-bold text-muted">
+                About Me (Bio)
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                name="bio"
+                placeholder="Tell us about yourself..."
+                value={editedData.bio}
+                onChange={handleInputChange}
+                rows={4}
+                className="rounded-3 shadow-sm"
+              />
+            </Form.Group>
+
+            <Stack
+              direction="horizontal"
+              gap={2}
+              className="justify-content-center mb-2"
+            >
+              <Button
+                variant="success"
+                onClick={handleSave}
+                className="rounded-pill px-4 fw-bold"
+              >
+                Save Changes
+              </Button>
+              <Button
+                variant="outline-secondary"
+                onClick={handleCancel}
+                className="rounded-pill px-4"
+              >
+                Cancel
+              </Button>
+            </Stack>
+          </Form>
+        ) : (
+          <div className="px-3">
+            <Card.Title className="fs-3 fw-bold mb-1">
+              {userData.username}
+            </Card.Title>
+            <Card.Text className="text-muted mb-4 px-2">
+              {userData.profile?.bio || (
+                <span className="fst-italic opacity-50">
+                  No bio available yet.
+                </span>
+              )}
+            </Card.Text>
+
+            <Stack gap={2} className="col-md-10 mx-auto mb-3">
+              <Button
+                variant="primary"
+                onClick={handleEditToggle}
+                className="rounded-pill fw-bold"
+              >
+                Edit Profile
+              </Button>
+              <Button
+                variant="outline-secondary"
+                onClick={() => setShowPasswordModal(true)}
+                className="rounded-pill"
+              >
+                Change Password
+              </Button>
+              <hr className="my-2 opacity-10" />
+              <Button
+                variant="link"
+                className="text-danger text-decoration-none small"
+                onClick={() => setShowModal(true)}
+              >
+                Delete Account
+              </Button>
+            </Stack>
+          </div>
         )}
       </Card.Body>
     </Card>

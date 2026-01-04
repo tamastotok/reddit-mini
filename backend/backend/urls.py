@@ -10,6 +10,8 @@ from api.views import (
     csrf_token_view,
 )
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,4 +29,4 @@ urlpatterns = [
     path("api-auth/", include("rest_framework.urls")),
     path('api/logout/', LogoutView.as_view(), name='logout'),
     path("api/", include("api.urls")),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

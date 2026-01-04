@@ -48,12 +48,33 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['bio', 'avatar']
 
 class UserSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer()
+
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name"]
+        fields = ["id", "username", "email", "first_name", "last_name", "profile"]
         read_only_fields = ["id", "username", "email"]
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('profile', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if profile_data:
+            profile = instance.profile
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
+
+        return instance
 
 
 class VoteSerializer(serializers.ModelSerializer):
@@ -233,16 +254,6 @@ class TopicSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.subscribers.filter(id=request.user.id).exists()
         return False
-
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username', read_only=True)
-    email = serializers.EmailField(source='user.email', read_only=True)
-    id = serializers.IntegerField(source='user.id', read_only=True)
-
-    class Meta:
-        model = UserProfile
-        fields = ['username', 'id', 'email', 'bio', 'profile_picture']
 
 
 class ChangePasswordSerializer(serializers.Serializer):
