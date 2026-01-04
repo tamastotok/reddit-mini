@@ -82,7 +82,6 @@
 
 ## Planned features
 
-- Image upload system
 - Role system
 - Report system
 - Dark mode
