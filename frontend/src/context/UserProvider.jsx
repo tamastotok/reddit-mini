@@ -11,6 +11,7 @@ export const UserProvider = ({ children }) => {
       setUser(null);
       return;
     }
+
     try {
       const res = await getUserProfile(userId);
       setUser({
