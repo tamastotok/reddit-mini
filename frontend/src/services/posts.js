@@ -1,19 +1,19 @@
 import api from './api';
 
-// ---- GET ----
+// Get
 export const getAllPosts = (params) => api.get('/api/posts/', { params });
 export const getPostById = (id) => api.get(`/api/post/${id}/`);
 
-// ---- CREATE ----
+// Create
 export const createPost = (data) => api.post('/api/post/create/', data);
 
-// ---- UPDATE ----
+// Update
 export const updatePost = (id, data) =>
   api.put(`/api/post/${id}/update/`, data);
 
-// ---- DELETE ----
+// Delete
 export const deletePost = (id) => api.delete(`/api/post/${id}/delete/`);
 
-// ---- VOTE ----
+// Vote
 export const votePost = (postId, voteType) =>
   api.post(`/api/post/${postId}/vote/`, { vote_type: voteType });

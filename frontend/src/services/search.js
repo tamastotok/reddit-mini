@@ -1,5 +1,5 @@
 import api from './api';
 
-// ---- SEARCH ----
+// Search
 export const searchAll = (query) =>
   api.get('/api/search/', { params: { q: query } });

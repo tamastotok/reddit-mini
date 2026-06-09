@@ -1,17 +1,17 @@
 import api from './api';
 
-// ---- CREATE ----
+// Create
 export const createComment = (postId, data) =>
   api.post(`/api/post/${postId}/comment/create/`, data);
 
-// ---- UPDATE ----
+// Update
 export const updateComment = (commentId, data) =>
   api.put(`/api/comment/${commentId}/update/`, data);
 
-// ---- DELETE ----
+// Delete
 export const deleteComment = (postId, commentId) =>
   api.delete(`/api/post/${postId}/comment/${commentId}/delete/`);
 
-// ---- VOTE ----
+// Vote
 export const voteComment = (commentId, voteType) =>
   api.post(`/api/comment/${commentId}/vote/`, { vote_type: voteType });
