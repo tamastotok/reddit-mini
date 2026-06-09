@@ -46,7 +46,6 @@
   color: blue;
 }
 
-/* styles.css or App.css */
 .hover-bg-danger:hover {
   background-color: #dc3545 !important; /* Bootstrap danger color */
   color: white !important;
