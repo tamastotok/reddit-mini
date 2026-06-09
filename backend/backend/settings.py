@@ -157,7 +157,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS_ALLOWED_ORIGINS = [os.getenv("FRONTEND_URL")]
 CORS_ALLOWED_ORIGINS = [os.getenv("FRONTEND_URL")]
 CORS_ALLOWS_CREDENTIALS = True
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
