@@ -14,6 +14,7 @@ import Post from './pages/Post';
 import SessionExpiredPopup from './components/SessionExpiredPopUp';
 import CreateTopic from './pages/CreateTopic';
 import TopicDetail from './pages/TopicDetail';
+import ModQueue from './components/ModQueue';
 
 function RegisterAndLogout() {
   localStorage.clear();
@@ -74,7 +75,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/r/:slug/mod-queue/:topicId"
+            element={
+              <ProtectedRoute>
+                <ModQueue />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/login" element={<Login />} />
           <Route path="/logout" element={<Logout />} />
