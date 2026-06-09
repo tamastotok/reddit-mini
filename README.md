@@ -71,27 +71,31 @@ cd backend
 pip install -r requirements.txt
 ```
 
-Copy .env.example to .env in the backend/ directory and fill in the values:
+Rename the `.env.sample` files to .env from `backend/` and `frontend/` directory and fill in the values.
 
-```
-cp .env.example .env
-```
-
-Create a virtual environment:
+### Create virtual environment:
 
 ```bash
 python - venv venv
+```
 
-# Windows:
+### Activate virtual environment:
+
+Windows:
+
+```
 venv\Scripts\activate
 or
 source venv/Scripts/activate
+```
 
-# Linux/macOS:
+Linux/macOS:
+
+```
 source venv/bin/activate
 ```
 
-Run the server:
+### Run server:
 
 ```
 python manage.py migrate
