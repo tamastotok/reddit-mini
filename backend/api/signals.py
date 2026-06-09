@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import Sum
 from django.contrib.auth.models import User
-from .models import Vote, UserProfile
+from .models import Vote, UserProfile, Topic, Moderator
 
 @receiver(post_save, sender=Vote)
 def update_score_on_save(sender, instance, **kwargs):
@@ -35,3 +35,12 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
+
+@receiver(post_save, sender=Topic)
+def appoint_topic_creator_as_admin(sender, instance, created, **kwargs):
+    if created:
+        Moderator.objects.create(
+            user=instance.creator, 
+            topic=instance,
+            role='admin'
+        )
