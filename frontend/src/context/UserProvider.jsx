@@ -18,6 +18,8 @@ export const UserProvider = ({ children }) => {
         id: res.data.id,
         username: res.data.username,
         avatar: res.data.profile?.avatar,
+        is_staff: res.data.is_staff,
+        moderated_topics: res.data.moderated_topics,
       });
     } catch (err) {
       console.error('User context refresh error:', err);
