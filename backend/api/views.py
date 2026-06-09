@@ -1,7 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
 from rest_framework.permissions import (
     IsAuthenticated,
     AllowAny,
@@ -17,8 +16,10 @@ from django.db.models import Prefetch, Q
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from .models import Post, Comment, TopicTagCategory, Topic
+from .models import Moderator, Post, Comment, Report, TopicBan, TopicTagCategory, Topic
+from .permissions import IsAuthorOrTopicModerator
 from .serializers import (
+    ReportSerializer,
     TagCategorySerializer,
     UserSerializer,
     PostSerializer,
@@ -29,6 +30,7 @@ from .serializers import (
     TopicSerializer,
 )
 from .utils.voting import toggle_vote
+from rest_framework.exceptions import PermissionDenied
 
 
 def csrf_token_view(request):
@@ -148,8 +150,18 @@ class PostCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        post = serializer.save(author=self.request.user)
-        return post
+        user = self.request.user
+        topic_id = self.request.data.get('topic')
+        topic = get_object_or_404(Topic, id=topic_id)
+
+        if TopicBan.objects.filter(user=user, topic=topic).exists():
+            raise PermissionDenied("You are blocked from this community.")
+
+        is_privileged = Moderator.objects.filter(user=user, topic=topic).exists() or user.is_staff
+        if topic.is_locked and not is_privileged:
+            raise PermissionDenied("This community is locked.")
+
+        serializer.save(author=user, topic=topic)
 
 
 class PostDetailView(generics.RetrieveAPIView):
@@ -207,10 +219,25 @@ class CommentCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         post = get_object_or_404(Post, id=self.kwargs['post_id'])
+        user = self.request.user
+        topic = post.topic
+
+        if TopicBan.objects.filter(user=user, topic=topic).exists():
+            raise PermissionDenied("You are blocked from this community.")
+
+        is_privileged = Moderator.objects.filter(user=user, topic=topic).exists() or user.is_staff
+
+        if post.is_locked and not is_privileged:
+            raise PermissionDenied("This post is locked.")
+
         parent_id = self.request.data.get('parent')
-        parent = get_object_or_404(Comment, id=parent_id) if parent_id else None
+        parent = None
+        if parent_id:
+            parent = get_object_or_404(Comment, id=parent_id)
+            if parent.is_locked and not is_privileged:
+                raise PermissionDenied("You can not reply to this comment.")
         
-        serializer.save(author=self.request.user, post=post, parent=parent)
+        serializer.save(author=user, post=post, parent=parent)
 
 
 class CommentVoteView(generics.GenericAPIView):
@@ -274,16 +301,7 @@ class PostDeleteView(generics.DestroyAPIView):
     serializer_class = PostSerializer
 
     def get_object(self):
-        obj = super().get_object()  
-        if obj.author.id != self.request.user.id:
-            raise PermissionDenied('You are not authorized to delete this post.')
-        return obj
-
-    def perform_destroy(self, instance):
-        instance.delete()
-        return Response(
-            status=status.HTTP_204_NO_CONTENT
-        )
+        return super().get_object()
 
 
 class PostUpdateView(generics.UpdateAPIView):
@@ -312,7 +330,7 @@ class PostUpdateView(generics.UpdateAPIView):
 class UserProfileView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    lookup_field = 'pk' # vagy 'username'
+    lookup_field = 'pk' # or 'username'
 
 
 class ChangeUserPassword(generics.UpdateAPIView):
@@ -419,3 +437,153 @@ class LogoutView(APIView):
             return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ToggleTopicLockView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        topic = get_object_or_404(Topic, pk=pk)
+        user = request.user
+
+        if topic.creator != user and not user.is_staff:
+            raise PermissionDenied("You do not have permission to lock this community.")
+
+        topic.is_locked = not topic.is_locked
+        topic.save()
+
+        status_msg = "locked" if topic.is_locked else "opened"
+        return Response({
+            "message": f"The r/{topic.name} community is successfully {status_msg}.",
+            "is_locked": topic.is_locked
+        }, status=status.HTTP_200_OK)
+
+
+class TogglePostLockView(APIView):
+    permission_classes = [IsAuthenticated, IsAuthorOrTopicModerator]
+
+    def post(self, request, pk):
+        post = get_object_or_404(Post, pk=pk)
+        self.check_object_permissions(request, post)
+        
+        post.is_locked = not post.is_locked
+        post.save()
+        
+        status_msg = "locked" if post.is_locked else "unlocked"
+        return Response({"message": f"Post is successfully {status_msg}."}, status=status.HTTP_200_OK)
+
+class ToggleCommentLockView(APIView):
+    permission_classes = [IsAuthenticated, IsAuthorOrTopicModerator]
+
+    def post(self, request, pk):
+        comment = get_object_or_404(Comment, pk=pk)
+        self.check_object_permissions(request, comment)
+        
+        comment.is_locked = not comment.is_locked
+        comment.save()
+        
+        return Response({"is_locked": comment.is_locked}, status=status.HTTP_200_OK)
+    
+
+class TopicBanView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, topic_id):
+        topic = get_object_or_404(Topic, id=topic_id)
+        user_to_ban = get_object_or_404(User, id=request.data.get('user_id'))
+        reason = request.data.get('reason', '')
+
+        is_mod = Moderator.objects.filter(user=request.user, topic=topic).exists()
+        if not is_mod and not request.user.is_staff:
+            raise PermissionDenied("You do not have permission to ban in this community.")
+
+        if user_to_ban == topic.creator or user_to_ban == request.user:
+            return Response({"error": "You can not ban this user."}, status=status.HTTP_400_BAD_REQUEST)
+
+        ban, created = TopicBan.objects.get_or_create(
+            user=user_to_ban,
+            topic=topic,
+            defaults={'banned_by': request.user, 'reason': reason}
+        )
+
+        if not created:
+            return Response({"message": "This user is already banned."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": f"{user_to_ban.username} is banned from this community."}, status=status.HTTP_201_CREATED)
+    
+
+class ModeratorPromotionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, topic_id):
+        topic = get_object_or_404(Topic, id=topic_id)
+        if topic.creator != request.user and not request.user.is_staff:
+            raise PermissionDenied("Only the community owner can nominate moderators .")
+
+        target_user = get_object_or_404(User, id=request.data.get('user_id'))
+        new_role = request.data.get('role', 'mod') # 'mod' or 'admin'
+
+        if new_role not in ['mod', 'admin']:
+            return Response({"error": "Invalid rank."}, status=status.HTTP_400_BAD_REQUEST)
+
+        moderator, created = Moderator.objects.update_or_create(
+            user=target_user,
+            topic=topic,
+            defaults={'role': new_role}
+        )
+
+        return Response({
+            "message": f"{target_user.username} from now on {new_role} in the r/{topic.name} community."
+        }, status=status.HTTP_200_OK)
+    
+
+class ReportCreateView(generics.CreateAPIView):
+    queryset = Report.objects.all()
+    serializer_class = ReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(reporter=self.request.user)
+
+
+class TopicReportListView(generics.ListAPIView):
+    serializer_class = ReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        topic_id = self.kwargs['topic_id']
+        user = self.request.user
+        
+        if not Moderator.objects.filter(user=user, topic_id=topic_id).exists() and not user.is_staff:
+            raise PermissionDenied("Nincs jogod látni a jelentéseket.")
+            
+        return Report.objects.filter(
+            Q(post__topic_id=topic_id) | Q(comment__post__topic_id=topic_id),
+            status='pending'
+        ).order_by('-created_at')
+    
+
+class ResolveReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        report = get_object_or_404(Report, pk=pk)
+        action = request.data.get('action') # 'resolve' or 'dismiss'
+        user = request.user
+
+        topic = report.post.topic if report.post else report.comment.post.topic
+        if not Moderator.objects.filter(user=user, topic=topic).exists() and not user.is_staff:
+            raise PermissionDenied("Nincs jogod kezelni ezt a jelentést.")
+
+        if action == 'resolve':
+            report.status = 'resolved'
+            if report.post: report.post.delete()
+            elif report.comment: report.comment.delete()
+        else:
+            report.status = 'dismissed'
+
+        report.resolved_at = timezone.now()
+        report.resolved_by = user
+        report.save()
+
+        return Response({"message": f"Jelentés {report.status} állapotba került."})
