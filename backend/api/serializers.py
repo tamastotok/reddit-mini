@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from .models import TopicTagCategory, UserProfile, Post, Comment, Vote, PostTag, Topic, TopicTag
+from .models import Report, TopicTagCategory, UserProfile, Post, Comment, Vote, PostTag, Topic, TopicTag
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.middleware.csrf import get_token
 from django.contrib.auth.hashers import check_password
@@ -12,12 +12,12 @@ class CustomTokenSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['user_id'] = user.id  # Add user ID to the token
+        token['user_id'] = user.id
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        data['user_id'] = self.user.id  # Add user ID to the response
+        data['user_id'] = self.user.id
 
         request = self.context.get('request')
         if request:
@@ -55,10 +55,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
+    moderated_topics = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "profile"]
+        fields = ["id", "username", "email", "first_name", "last_name", "profile", "is_staff", "moderated_topics"]
         read_only_fields = ["id", "username", "email"]
 
     def update(self, instance, validated_data):
@@ -75,6 +76,12 @@ class UserSerializer(serializers.ModelSerializer):
             profile.save()
 
         return instance
+    
+    def get_moderated_topics(self, obj):
+        return [
+            {"topic_id": mod.topic.id, "role": mod.role}
+            for mod in obj.moderated_topics.all()
+        ]
 
 
 class VoteSerializer(serializers.ModelSerializer):
@@ -277,3 +284,12 @@ class ChangePasswordSerializer(serializers.Serializer):
         user = self.context['request'].user
         user.set_password(self.validated_data['new_password'])
         user.save()
+
+
+class ReportSerializer(serializers.ModelSerializer):
+    reporter_name = serializers.ReadOnlyField(source='reporter.username')
+
+    class Meta:
+        model = Report
+        fields = ['id', 'reporter_name', 'post', 'comment', 'reason', 'description', 'status', 'created_at']
+        read_only_fields = ['id', 'reporter', 'status', 'created_at']
