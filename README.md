@@ -1,64 +1,121 @@
-URLs
+# Reddit Mini
 
-POSTS:
-posts/
-api.get('/api/posts/', { params });
+A full-stack, Reddit-inspired web application. Users can create communities and posts, engage through threaded comments and voting, and manage their profiles.
 
-posts/{pk}/
-api.get(`/api/post/${id}/`);
+---
 
-post/create/
-api.post('/api/post/create/', data);
+## Features
 
-posts/{post_id}/vote/
-api.post(`/api/post/${postId}/vote/`, { vote_type: voteType });
+### Authentication & Accounts
 
-posts/{post_id}/update/
-api.put(`/api/post/${id}/update/`, data);
+- Register and log in with JWT-based authentication (30-minute session)
+- Password validation on registration: minimum 8 characters, not purely numeric, similarity check against username/email, and password confirmation match
+- Change password or permanently delete account
 
-post/{pk}/delete/
-api.delete(`/api/post/${id}/delete/`);
+### Posts
 
-COMMENTS:
-**comments/{pk}/
-**api.get(`/api/comments/${postId}/`);
+- Create, edit, and delete posts
+- Assign posts to a community
+- Attach tags to posts
+- Search posts — sort results by date, most popular, or least popular
 
-comments/{post_id}/create/
-api.post(`/api/post/${postId}/comment/create/`, data);
+### Comments
 
-comments{post_id}/{comment_id}/vote/
-api.post(`/api/comment/${commentId}/vote/`, { vote_type: voteType });
+- Comment on posts and reply to comments (nested reply system)
+- Upvote and downvote on posts and comments
 
-comments/{post_id}/update/{comment_id}/
-api.put(`/api/comment/${commentId}/update/`, data);
+### Communities
 
-comments/{post_id}/delete/{comment_id}/
-api.delete(`/api/comment/${commentId}/delete/`);
+- Create communities (topics/subreddits)
+- Posts can belong to a specific community
 
-SEARCH:
-search/
-api.get('/api/search/', { params: { q: query } });
+### Profiles
 
-CATEGORIES:
-post/categories/
-api.get('/api/post/categories/');
+- Users can see theri own post and comment history
+- Write a short bio
+- Upload a profile picture
 
-USER:
-registerUser = (data) => api.post('/api/user/register/', data);
+---
 
-profile/{pk}/
-api.get(`/api/profile/${userId}/`);
+## Screenshots
 
-user-activity/{username}
-api.get(`/api/user-activity/${username}/`);
+<img src=".github/assets/rm_register.png" alt="Register" style="width:50%; height:auto;">
+<img src=".github/assets/rm_main_page.png" alt="Comments" style="width:50%; height:auto;">
+<img src=".github/assets/rm_create_post.png" alt="Create Post" style="width:50%; height:auto;">
+<img src=".github/assets/rm_post_comments.png" alt="Comments" style="width:50%; height:auto;">
 
-user/{pk}/change-password/
-api.put(`/api/user/${userId}/change-password/`, data);
+---
 
-user/{pk}/edit/
-api.put(`/api/user/${userId}/edit/`, formData, {
-headers: { 'Content-Type': 'multipart/form-data' },
-});
+## Tech Stack
 
-user/{pk}/delete/
-api.delete(`/api/user/${userId}/delete/`);
+|          |                                         |
+| -------- | --------------------------------------- |
+| Backend  | Python · Django · Django REST Framework |
+| Frontend | React · JavaScript                      |
+| Auth     | JWT (`djangorestframework-simplejwt`)   |
+| Database | PostgreSQL                              |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- Node.js 18+
+
+### Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+Copy .env.example to .env in the backend/ directory and fill in the values:
+
+```
+cp .env.example .env
+```
+
+Create a virtual environment:
+
+```bash
+python - venv venv
+
+# Windows:
+venv\Scripts\activate
+or
+source venv/Scripts/activate
+
+# Linux/macOS:
+source venv/bin/activate
+```
+
+Run the server:
+
+```
+python manage.py migrate
+python manage.py runserver
+```
+
+API runs at `http://localhost:8000`.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+App runs at `http://localhost:5173`.
+
+---
+
+## Planned features
+
+- Role system (admin, moderator)
+- Content reporting
+- Community discovery and search
+
+---
