@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { registerUser } from '../../services/user';
-
 import Popup from '../../components/Popup';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import PasswordRequirements from '../../components/Form/PasswordRequirements';
@@ -23,7 +22,6 @@ function Register() {
   const [canSubmit, setCanSubmit] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const navigate = useNavigate();
 
   const togglePasswordVisibility = (type) => {

@@ -19,7 +19,6 @@ function Post() {
   const [isFocused, setIsFocused] = useState(false);
   const { postId } = useParams();
   const navigate = useNavigate();
-  //const userId = Number(localStorage.getItem('user_id'));
 
   const updateCommentInTree = (comments, id, updatedData) => {
     return comments.map((comment) => {
@@ -74,7 +73,6 @@ function Post() {
     fetchPostData(postId);
   }, [postId]);
 
-  // --- COMMENT CRUD ---
   const handleCreateComment = async (parentId = null, text = commentText) => {
     if (!text.trim()) return;
     try {
@@ -90,7 +88,7 @@ function Post() {
               ...(comments.find((c) => c.id === parentId)?.replies || []),
               res.data,
             ],
-          })
+          }),
         );
         fetchPostData(postId);
       } else {
@@ -129,19 +127,19 @@ function Post() {
 
       setUserCommentVote((prev) => ({ ...prev, [commentId]: newVoteType }));
 
-      // Rekurzív frissítés a fában
+      // Update comment tree
       setComments((prev) =>
         updateCommentInTree(prev, commentId, {
           total_votes: res.data.total_votes,
           user_vote: newVoteType,
-        })
+        }),
       );
     } catch (error) {
       console.error('Error voting:', error);
     }
   };
 
-  // --- UI helpers ---
+  // UI helpers
   const showActions = isFocused || commentText.trim().length > 0;
   const handleCancel = () => {
     setCommentText('');
