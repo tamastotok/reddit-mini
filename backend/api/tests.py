@@ -12,10 +12,10 @@ class TestRedditMiniAPI:
         self.client = APIClient()
         self.user = User.objects.create_user(username="tester", password="pass123")
         
-        # FIX 1: Hitelesítés kényszerítése minden kéréshez
+        # Auth
         self.client.force_authenticate(user=self.user)
         
-        # Topic és Tag struktúra
+        # Topic and tag structure
         self.cat_gaming = TopicTagCategory.objects.create(name="Gaming")
         self.tag_fps = TopicTag.objects.create(name="FPS", category=self.cat_gaming)
         
@@ -26,7 +26,7 @@ class TestRedditMiniAPI:
         )
         self.topic.tags.add(self.tag_fps)
 
-        # Alap poszt
+        # Basic post
         self.post = Post.objects.create(
             author=self.user,
             title="Test Post",
@@ -50,34 +50,32 @@ class TestRedditMiniAPI:
         Post.objects.create(author=self.user, title="Newer Post", topic=self.topic)
         url = "/api/posts/?sort=new"
         res = self.client.get(url)
-        # Itt most már lesz adat, mert be vagyunk jelentkezve
         assert res.data[0]["title"] == "Newer Post"
 
     def test_sort_posts_by_top_timeframe(self):
-        """Ellenőrzi a 'Top' rendezést több különböző felhasználó szavazata alapján"""
-        # 1. Létrehozunk egy kevésbé népszerű posztot
+        # Check 'Top' filter
+        # Create a less popular post
         low_post = Post.objects.create(author=self.user, title="Boring Post", topic=self.topic)
         
-        # 2. Létrehozunk egy népszerű posztot
+        # Create a popular post
         high_vote_post = Post.objects.create(author=self.user, title="Popular", topic=self.topic)
         
-        # 3. Létrehozunk 5 különböző felhasználót és mindegyik szavaz a népszerű posztra
+        # Create 5 user and vote with them to the popular post
         for i in range(5):
             other_user = User.objects.create_user(username=f"voter_{i}", password="pass")
             Vote.objects.create(
                 content_object=high_vote_post, 
                 value=1, 
-                user=other_user  # Mindig más felhasználó szavaz
+                user=other_user
             )
             
-        # 4. Egyetlen szavazat a kevésbé népszerűre
+        # 4. One vote to the less popular post
         Vote.objects.create(content_object=low_post, value=1, user=self.user)
             
         url = "/api/posts/?sort=top&timeframe=all"
         res = self.client.get(url)
         
         assert res.status_code == status.HTTP_200_OK
-        # A listában a "Popular" posztnak kell az első helyen lennie
         assert res.data[0]["title"] == "Popular"
         assert res.data[1]["title"] == "Boring Post"
 
