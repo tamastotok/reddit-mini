@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Modal, Badge } from 'react-bootstrap';
+import { Card, Button, Modal, Badge, Dropdown } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faComments,
@@ -9,19 +9,68 @@ import {
   faEdit,
   faTrash,
   faPlus,
+  faEllipsisH,
+  faLock,
+  faUnlock,
+  faFlag,
 } from '@fortawesome/free-solid-svg-icons';
-import { deletePost, votePost } from '../services/posts';
-import { toggleSubscribe } from '../services/topics';
 
-const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
-  const userId = Number(localStorage.getItem('user_id'));
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userPostVote, setUserPostVote] = useState(
-    post.votes?.find((vote) => vote.user_id === userId)?.value || null
-  );
-  const [totalVotes, setTotalVotes] = useState(post.total_votes || 0);
-  const [isSubscribed, setIsSubscribed] = useState(post.topic_is_subscribed);
+import { deletePost, votePost } from '../services/posts';
+import { lockPost } from '../services/moderation';
+import { toggleSubscribe } from '../services/topics';
+import { UserContext } from '../context/UserContext';
+import { getPermissions } from '../utils/permissions';
+import ReportComponent from './ReportComponent';
+
+const DeleteConfirmModal = ({ show, onHide, onConfirm }) => (
+  <Modal show={show} onHide={onHide} centered>
+    <Modal.Header closeButton className="border-0">
+      <Modal.Title className="h5">Are you sure you want to delete?</Modal.Title>
+    </Modal.Header>
+    <Modal.Body className="text-muted">
+      This action cannot be undone. The post will be permanently deleted.
+    </Modal.Body>
+    <Modal.Footer className="border-0">
+      <Button variant="light" onClick={onHide} className="rounded-pill px-4">
+        Cancel
+      </Button>
+      <Button
+        variant="danger"
+        onClick={onConfirm}
+        className="rounded-pill px-4"
+      >
+        Delete
+      </Button>
+    </Modal.Footer>
+  </Modal>
+);
+
+const PostCard = ({ post: initialPost, handlePostClick, onRefreshPost }) => {
+  const { user } = useContext(UserContext);
   const navigate = useNavigate();
+  const userId = Number(localStorage.getItem('user_id'));
+  const [post, setPost] = useState(initialPost);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [totalVotes, setTotalVotes] = useState(initialPost.total_votes || 0);
+  const [isSubscribed, setIsSubscribed] = useState(
+    initialPost.topic_is_subscribed,
+  );
+  const [userPostVote, setUserPostVote] = useState(
+    initialPost.votes?.find((v) => v.user_id === userId)?.value || null,
+  );
+  const [showReportModal, setShowReportModal] = useState(false);
+  const { canDelete, canLock, isMod } = getPermissions(
+    user,
+    post.topic,
+    post.author_id,
+  );
+
+  // Sync if props are refreshed
+  useEffect(() => {
+    setPost(initialPost);
+    setTotalVotes(initialPost.total_votes || 0);
+    setIsSubscribed(initialPost.topic_is_subscribed);
+  }, [initialPost]);
 
   const handleVote = async (e, value) => {
     e.stopPropagation();
@@ -30,7 +79,6 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
       const res = await votePost(post.id, newValue);
       setUserPostVote(newValue);
       setTotalVotes(res.data.total_votes);
-      if (onRefreshPost) onRefreshPost();
     } catch (err) {
       console.error('Voting error', err);
     }
@@ -42,10 +90,19 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
       await toggleSubscribe(post.topic_slug);
       setIsSubscribed(true);
       window.dispatchEvent(new Event('communitiesUpdated'));
-
       if (onRefreshPost) onRefreshPost();
     } catch (err) {
       console.error('Join error', err);
+    }
+  };
+
+  const handleLockToggle = async (e) => {
+    e.stopPropagation();
+    try {
+      await lockPost(post.id);
+      setPost((prev) => ({ ...prev, is_locked: !prev.is_locked }));
+    } catch (error) {
+      alert('Failed to toggle lock status.', error);
     }
   };
 
@@ -60,8 +117,7 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
   };
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
@@ -71,7 +127,6 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
         style={{ borderRadius: '8px', overflow: 'hidden' }}
       >
         <div className="d-flex">
-          {/* Left Side */}
           <div
             className="d-flex flex-column align-items-center p-2 border-end bg-light"
             style={{ width: '48px' }}
@@ -82,15 +137,15 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
                 userPostVote === 1 ? 'text-primary' : 'text-muted'
               }`}
               onClick={(e) => handleVote(e, 1)}
-              style={{ cursor: 'pointer', fontSize: '1.3rem' }}
+              style={{ cursor: 'pointer', fontSize: '1.2rem' }}
             />
             <span
               className={`fw-bold my-1 ${
                 userPostVote === 1
                   ? 'text-primary'
                   : userPostVote === -1
-                  ? 'text-danger'
-                  : ''
+                    ? 'text-danger'
+                    : ''
               }`}
             >
               {totalVotes}
@@ -101,22 +156,17 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
                 userPostVote === -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={(e) => handleVote(e, -1)}
-              style={{ cursor: 'pointer', fontSize: '1.3rem' }}
+              style={{ cursor: 'pointer', fontSize: '1.2rem' }}
             />
           </div>
 
-          {/* Right Side */}
           <div
             className="flex-grow-1 p-3"
             onClick={() => handlePostClick(post.id)}
             style={{ cursor: 'pointer' }}
           >
-            {/* Header (r/topic & Join button) */}
             <div className="d-flex justify-content-between align-items-start mb-1">
-              <div
-                className="d-flex align-items-center"
-                style={{ fontSize: '0.8rem' }}
-              >
+              <div className="d-flex align-items-center small">
                 <span
                   className="fw-bold text-dark me-1"
                   onClick={(e) => {
@@ -127,29 +177,102 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
                   r/{post.topic_slug || 'all'}
                 </span>
                 <span className="text-muted">
-                  • Posted by u/{post.author_name}
-                </span>
-                <span className="text-muted ms-1">
+                  • Posted by u/{post.author_name} •{' '}
                   {formatTime(post.created_at)}
                 </span>
               </div>
 
-              {/* Join Button: Only if the user is not subscribed and not OP*/}
-              {userId && !isSubscribed && post.topic_slug !== 'all' && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-pill py-0 px-3 fw-bold"
-                  style={{ fontSize: '0.75rem', height: '24px' }}
-                  onClick={handleJoin}
-                >
-                  <FontAwesomeIcon icon={faPlus} className="me-1" />
-                  Join
-                </Button>
-              )}
+              <div className="d-flex align-items-center gap-2">
+                {userId && !isSubscribed && post.topic_slug !== 'all' && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="rounded-pill py-0 px-3 fw-bold"
+                    style={{ fontSize: '0.75rem', height: '24px' }}
+                    onClick={handleJoin}
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="me-1" /> Join
+                  </Button>
+                )}
+
+                <Dropdown align="end" onClick={(e) => e.stopPropagation()}>
+                  <Dropdown.Toggle
+                    as="div"
+                    className="p-1 px-2 rounded-circle bg-hover shadow-none border-0"
+                  >
+                    <FontAwesomeIcon
+                      icon={faEllipsisH}
+                      className="text-muted"
+                    />
+                  </Dropdown.Toggle>
+
+                  <Dropdown.Menu className="shadow-sm border-0">
+                    {userId === post.author_id && (
+                      <Dropdown.Item
+                        onClick={() => navigate(`/post/${post.id}/edit`)}
+                      >
+                        <FontAwesomeIcon
+                          icon={faEdit}
+                          className="me-2 text-muted"
+                        />{' '}
+                        Edit Post
+                      </Dropdown.Item>
+                    )}
+
+                    {canLock && (
+                      <Dropdown.Item onClick={handleLockToggle}>
+                        <FontAwesomeIcon
+                          icon={post.is_locked ? faUnlock : faLock}
+                          className="me-2 text-muted"
+                        />
+                        {post.is_locked ? 'Unlock Post' : 'Lock Post'}
+                      </Dropdown.Item>
+                    )}
+
+                    {userId && userId !== post.author_id && (
+                      <Dropdown.Item className="text-warning">
+                        <FontAwesomeIcon icon={faFlag} className="me-2" />{' '}
+                        Report
+                      </Dropdown.Item>
+                    )}
+
+                    {canDelete && (
+                      <>
+                        <Dropdown.Divider />
+                        <Dropdown.Item
+                          className="text-danger"
+                          onClick={() => setShowDeleteModal(true)}
+                        >
+                          <FontAwesomeIcon icon={faTrash} className="me-2" />{' '}
+                          Delete Post
+                        </Dropdown.Item>
+                      </>
+                    )}
+
+                    {isMod && (
+                      <>
+                        <Dropdown.Divider />
+                        <div className="px-3 py-1 small text-info fw-bold">
+                          🛡️ Moderator Tools
+                        </div>
+                      </>
+                    )}
+                  </Dropdown.Menu>
+                </Dropdown>
+              </div>
             </div>
 
-            <Card.Title className="fw-bold mb-2 h5">{post.title}</Card.Title>
+            <Card.Title className="fw-bold mb-2 h5 d-flex align-items-center">
+              {post.title}
+              {post.is_locked && (
+                <FontAwesomeIcon
+                  icon={faLock}
+                  className="ms-2 text-warning"
+                  style={{ fontSize: '0.9rem' }}
+                  title="Locked"
+                />
+              )}
+            </Card.Title>
 
             <Card.Text
               className="text-secondary mb-3"
@@ -179,75 +302,29 @@ const PostCard = ({ post, handlePostClick, onRefreshPost }) => {
             </div>
 
             <div
-              className="d-flex align-items-center gap-3 text-muted fw-bold"
+              className="d-flex align-items-center text-muted fw-bold"
               style={{ fontSize: '0.8rem' }}
             >
               <div className="bg-hover p-1 px-2 rounded">
                 <FontAwesomeIcon icon={faComments} className="me-2" />
                 {post.comments_count || 0} Comments
               </div>
-
-              {userId === post.author_id && (
-                <div className="ms-auto d-flex gap-2">
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="text-muted p-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/post/${post.id}/edit`);
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faEdit} />
-                  </Button>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="text-danger p-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDeleteModal(true);
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </Card>
 
-      <Modal
+      <ReportComponent
+        show={showReportModal}
+        onHide={() => setShowReportModal(false)}
+        postId={post.id}
+      />
+
+      <DeleteConfirmModal
         show={showDeleteModal}
         onHide={() => setShowDeleteModal(false)}
-        centered
-      >
-        <Modal.Header closeButton className="border-0">
-          <Modal.Title className="h5">
-            Are you sure you want to delete?
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="text-muted">
-          This action cannot be undone. The post will be permanently deleted.
-        </Modal.Body>
-        <Modal.Footer className="border-0">
-          <Button
-            variant="light"
-            onClick={() => setShowDeleteModal(false)}
-            className="rounded-pill px-4"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            onClick={handleDeleteConfirm}
-            className="rounded-pill px-4"
-          >
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        onConfirm={handleDeleteConfirm}
+      />
     </>
   );
 };
