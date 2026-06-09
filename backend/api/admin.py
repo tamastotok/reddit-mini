@@ -1,13 +1,26 @@
 from django.contrib import admin
-from .models import Topic, TopicTag, Post, PostTag, Comment, TopicTagCategory, UserProfile, Vote
+from .models import Moderator, Report, Topic, TopicBan, TopicTag, Post, PostTag, Comment, TopicTagCategory, UserProfile, Vote
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-# Register your models here.
-# TOPIC AND TAGS
+# Inlines
+class ModeratorInline(admin.TabularInline):
+    model = Moderator
+    extra = 1
+
+class TopicBanInline(admin.TabularInline):
+    model = TopicBan
+    extra = 0
+    fk_name = 'user'
+    readonly_fields = ('banned_by',)
+
+# Topic and tags
 @admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'creator', 'created_at')
+    list_display = ('name', 'slug', 'creator', 'is_locked', 'created_at')
     search_fields = ('name', 'slug')
-    prepopulated_fields = {'slug': ('name',)} 
+    prepopulated_fields = {'slug': ('name',)}
+    inlines = [ModeratorInline]
 
 @admin.register(TopicTagCategory)
 class TopicTagCategoryAdmin(admin.ModelAdmin):
@@ -20,21 +33,21 @@ class TopicTagAdmin(admin.ModelAdmin):
     list_filter = ('category',)        
     search_fields = ('name',)
 
-# POST AND TAGS
+# Post and tags
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'author', 'topic', 'created_at', 'score')
-    list_filter = ('topic', 'created_at')
+    list_display = ('title', 'author', 'topic', 'created_at', 'score', 'is_locked')
+    list_filter = ('topic', 'created_at', 'is_locked')
     search_fields = ('title', 'content')
 
 @admin.register(PostTag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('name',)
 
-# INTERACTIONS
+# Interactions
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ('author', 'post', 'created_at', 'score')
+    list_display = ('author', 'post', 'created_at', 'score', 'is_locked')
 
 @admin.register(Vote)
 class VoteAdmin(admin.ModelAdmin):
@@ -43,3 +56,32 @@ class VoteAdmin(admin.ModelAdmin):
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user',)
+
+# Mod and role management
+@admin.register(Moderator)
+class ModeratorAdmin(admin.ModelAdmin):
+    list_display = ('user', 'topic', 'role', 'created_at')
+    list_filter = ('role', 'topic')
+    search_fields = ('user__username', 'topic__name')
+    list_editable = ('role',)
+
+@admin.register(TopicBan)
+class TopicBanAdmin(admin.ModelAdmin):
+    list_display = ('user', 'topic', 'banned_by', 'created_at')
+    search_fields = ('user__username', 'topic__name')
+    raw_id_fields = ('user',)
+
+# User admin
+class UserAdmin(BaseUserAdmin):
+    inlines = [ModeratorInline, TopicBanInline]
+
+# User re-register
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ('reporter', 'reason', 'status', 'created_at')
+    list_filter = ('status', 'reason')
+    readonly_fields = ('created_at',)
