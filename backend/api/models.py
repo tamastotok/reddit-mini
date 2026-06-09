@@ -12,7 +12,7 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s profile"
-
+    
 
 class Vote(models.Model):
     VOTE_CHOICES = (
@@ -64,6 +64,7 @@ class Topic(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     tags = models.ManyToManyField(TopicTag, related_name='topics', blank=True)
     subscribers = models.ManyToManyField(User, related_name='subscriptions', blank=True)
+    is_locked = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -98,6 +99,7 @@ class Post(models.Model):
     tags = models.ManyToManyField(PostTag, related_name='posts')
     votes = GenericRelation(Vote, related_query_name='post_votes_set')
     score = models.IntegerField(default=0)
+    is_locked = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -112,6 +114,69 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     votes = GenericRelation('Vote', related_query_name='comment_votes_set')
     score = models.IntegerField(default=0)
+    is_locked = models.BooleanField(default=False)
 
     def __str__(self):
         return f'Comment by {self.author.username} on {self.post.title}'
+
+
+class Moderator(models.Model):
+    ROLE_CHOICES = [
+        ('admin', 'Topic Admin'),
+        ('mod', 'Moderator'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='moderated_topics')
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='moderators')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='mod')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'topic')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.topic.name} ({self.role})"
+    
+
+class TopicBan(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='topic_bans')
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='banned_users')
+    banned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bans_issued')
+    reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'topic')
+
+    def __str__(self):
+        return f"{self.user.username} BANNED FROM {self.topic.name}"
+    
+
+class Report(models.Model):
+    REASON_CHOICES = [
+        ('spam', 'Spam / Kéretlen tartalom'),
+        ('harassment', 'Zaklatás / Gyűlöletbeszéd'),
+        ('misinformation', 'Félretájékoztatás'),
+        ('inappropriate', 'Nem megfelelő tartalom'),
+        ('other', 'Egyéb'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Függőben'),
+        ('resolved', 'Megoldva'),
+        ('dismissed', 'Elutasítva'),
+    ]
+
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_sent')
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, null=True, blank=True, related_name='reports')
+    comment = models.ForeignKey('Comment', on_delete=models.CASCADE, null=True, blank=True, related_name='reports')
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
+    description = models.TextField(blank=True, help_text="További részletek a jelentéshez")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reports_resolved')
+
+    def __str__(self):
+        target = f"Post: {self.post.title}" if self.post else f"Comment by {self.comment.author.username}"
+        return f"Report by {self.reporter.username} - {target} ({self.get_reason_display()})"
